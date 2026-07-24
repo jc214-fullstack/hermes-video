@@ -1,0 +1,13 @@
+[project]
+name = "hermes-video"
+version = "0.1.0"
+description = "Hermes-native video evidence bundle engine"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.scripts]
+hermes-video = "hermes_video.cli:main"
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
