@@ -20,3 +20,32 @@ def test_cli_writes_manifest(tmp_path):
     saved = json.loads(out.read_text())
     assert payload["platform"] == "youtube"
     assert saved["metadata"]["planned_frame_budget"] == 40
+
+
+def test_cli_writes_workspace_bundle(tmp_path):
+    workspace = tmp_path / "workspace"
+    env = dict(os.environ)
+    env["PYTHONPATH"] = str(Path(__file__).resolve().parents[1] / "src")
+    proc = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "hermes_video.cli",
+            "https://youtu.be/example",
+            "--platform",
+            "youtube",
+            "--duration",
+            "45",
+            "--workspace",
+            str(workspace),
+            "--media-path",
+            "/tmp/example.mp4",
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+        env=env,
+    )
+    payload = json.loads(proc.stdout)
+    assert Path(payload["paths"]["manifest"]).exists()
+    assert (workspace / "video" / "transcript.md").exists()
