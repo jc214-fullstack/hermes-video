@@ -19,7 +19,7 @@ def test_write_workspace_bundle_seeds_system_b_contract(tmp_path):
         detail="balanced",
     )
     paths = write_workspace_bundle(request, tmp_path, duration_seconds=45)
-    assert set(paths) == {"manifest", "metadata", "transcript", "extract"}
+    assert set(paths) == {"manifest", "metadata", "transcript", "extract", "analysis_ready"}
     manifest = json.loads((tmp_path / "manifest.json").read_text())
     assert manifest["platform"] == "youtube"
     assert manifest["media"] == "provided"
