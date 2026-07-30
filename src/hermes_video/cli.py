@@ -35,6 +35,8 @@ def _add_watch_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--media-path", help="Optional already recovered local video path")
     parser.add_argument("--start", type=_parse_timestamp, help="Focused range start")
     parser.add_argument("--end", type=_parse_timestamp, help="Focused range end")
+    parser.add_argument("--captions-file", help="Local VTT/SRT caption file to use as the transcript")
+    parser.add_argument("--stt", action="store_true", help="Run local faster-whisper STT on extracted audio when captions are absent")
     parser.add_argument("--json", action="store_true", help="Emit machine-readable JSON; currently the default output shape")
 
 
@@ -51,6 +53,8 @@ def _run_watch(args: argparse.Namespace) -> int:
             start=args.start,
             end=args.end,
             workspace=args.workspace,
+            captions_path=args.captions_file,
+            enable_stt=args.stt,
         )
         paths = write_workspace_bundle(request, args.workspace, duration_seconds=args.duration or None)
         print(json.dumps({"workspace": args.workspace, "paths": paths}, indent=2))

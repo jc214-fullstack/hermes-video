@@ -3,9 +3,17 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from .media_extract import extract_audio, extract_frames, ffprobe_media
+from .captions import load_captions, segments_to_markdown
+from .contact_sheet import build_contact_sheet
+from .media_extract import extract_audio, extract_frames, extract_frames_at_timestamps, ffprobe_media
 from .models import VideoEvidenceManifest, VideoEvidenceRequest
-from .planner import frame_budget, normalize_detail_mode, select_detail_defaults
+from .ocr import ocr_available, ocr_frames
+from .planner import cue_frame_segments, frame_budget, normalize_detail_mode, select_detail_defaults
+from .stt import transcribe_audio, whisper_available
+
+_OCR_MODES = {"deep", "focused", "full"}
+_OCR_PROMPT_HINTS = ("text", "repo", "repository", "github", "website", "site", "url", "install", "command", "code", "screen")
+_RICH_MODES = {"deep", "focused", "full"}
 
 
 def build_planned_manifest(request: VideoEvidenceRequest, *, duration_seconds: float | None = None) -> VideoEvidenceManifest:
@@ -35,24 +43,60 @@ def build_planned_manifest(request: VideoEvidenceRequest, *, duration_seconds: f
     )
 
 
-def _write_analysis_ready(root: Path, manifest: VideoEvidenceManifest) -> Path:
+def _resolve_transcript(request: VideoEvidenceRequest, audio_path: Path | None, manifest: VideoEvidenceManifest) -> tuple[list[dict], str, str]:
+    """Return ``(segments, source, status)`` using captions first, then STT."""
+    if request.captions_path and Path(request.captions_path).exists():
+        segments = load_captions(request.captions_path)
+        if segments:
+            return segments, "captions", "captions"
+        manifest.warnings.append("captions_empty: caption file parsed to zero segments")
+    if request.enable_stt and audio_path:
+        segments, status = transcribe_audio(audio_path)
+        if status == "stt":
+            return segments, "stt", "stt"
+        manifest.warnings.append(f"stt_{status}: local Whisper produced no transcript")
+        return [], "none", "unavailable"
+    if audio_path and whisper_available():
+        manifest.warnings.append("stt_available_not_run: pass --stt to transcribe extracted audio locally")
+    return [], "none", "unavailable"
+
+
+def _wants_ocr(detail: str, prompt: str) -> bool:
+    if detail in _OCR_MODES:
+        return True
+    prompt_lower = prompt.lower()
+    return any(hint in prompt_lower for hint in _OCR_PROMPT_HINTS)
+
+
+def _write_analysis_ready(root: Path, manifest: VideoEvidenceManifest, *, ocr_hits: list[dict]) -> Path:
     target = root / "analysis-ready.md"
     frame_lines = []
     for frame in manifest.frame_candidates:
-        frame_lines.append(f"- {frame.timestamp_seconds:.3f}s — `{Path(frame.path or '').as_posix()}` — reason: {frame.reason}")
+        rel = Path(frame.path or "")
+        try:
+            rel = rel.relative_to(root)
+        except ValueError:
+            pass
+        cue = f" — cue: \"{frame.cue_text}\"" if frame.cue_text else ""
+        frame_lines.append(f"- {frame.timestamp_seconds:.3f}s — `{rel.as_posix()}` — reason: {frame.reason}{cue}")
+    ocr_lines = [f"- `{Path(hit['path']).name}`: {hit['text'][:200]}" for hit in ocr_hits]
     target.write_text(
         "# Hermes Video analysis-ready bundle\n\n"
         f"Source: {manifest.source_url}\n"
         f"Platform: {manifest.platform}\n"
         f"Detail: {manifest.detail}\n"
         f"Evidence status: {manifest.evidence_status}\n"
-        f"Transcript status: {manifest.transcript}\n"
-        f"Frame status: {manifest.frames}\n\n"
+        f"Transcript status: {manifest.transcript} (source: {manifest.transcript_source})\n"
+        f"Frame status: {manifest.frames}\n"
+        f"OCR status: {manifest.ocr}\n"
+        f"Contact sheet: {manifest.contact_sheet}\n\n"
         "## Timestamped frames\n\n"
         + ("\n".join(frame_lines) if frame_lines else "No frames extracted.")
+        + "\n\n## On-screen text (OCR)\n\n"
+        + ("\n".join(ocr_lines) if ocr_lines else "None")
         + "\n\n## Warnings\n\n"
         + ("\n".join(f"- {warning}" for warning in manifest.warnings) if manifest.warnings else "None")
-        + "\n",
+        + "\n\n_Evidence only. Hermes/System B writes the interpretation._\n",
         encoding="utf-8",
     )
     return target
@@ -61,8 +105,9 @@ def _write_analysis_ready(root: Path, manifest: VideoEvidenceManifest) -> Path:
 def write_workspace_bundle(request: VideoEvidenceRequest, workspace: str | Path, *, duration_seconds: float | None = None) -> dict[str, str]:
     """Write the Hermes Video workspace contract.
 
-    If a real local `media_path` exists, v1 extracts ffprobe metadata, sampled
-    frames, and mono 16 kHz audio. Otherwise it writes an honest planned bundle.
+    With a real local ``media_path`` this extracts ffprobe metadata, sampled +
+    transcript-cue frames, mono 16 kHz audio, a transcript (captions or local
+    STT), OCR, and a contact sheet. Otherwise it writes an honest planned bundle.
     """
     root = Path(workspace)
     video_dir = root / "video"
@@ -71,22 +116,63 @@ def write_workspace_bundle(request: VideoEvidenceRequest, workspace: str | Path,
     frames_dir.mkdir(exist_ok=True)
 
     manifest = build_planned_manifest(request, duration_seconds=duration_seconds)
+    ocr_hits: list[dict] = []
+    transcript_segments: list[dict] = []
     media_path = Path(request.media_path) if request.media_path else None
     if media_path and media_path.exists():
         probe = ffprobe_media(media_path)
         actual_duration = float(probe.get("duration_seconds") or duration_seconds or 0)
         manifest.metadata["probe"] = probe
         manifest.metadata["duration_seconds"] = actual_duration
-        audio_path = extract_audio(media_path, video_dir / "audio.wav")
+
+        audio_path = extract_audio(media_path, video_dir / "audio.wav") if probe.get("has_audio") else None
         manifest.metadata["audio_path"] = str(audio_path) if audio_path else None
-        if audio_path:
-            manifest.transcript = "unavailable"
-            manifest.warnings.append("stt_not_run: audio extracted for Whisper fallback")
+
+        transcript_segments, source, status = _resolve_transcript(request, audio_path, manifest)
+        manifest.transcript = status
+        manifest.transcript_source = source
+
         frames = extract_frames(media_path, frames_dir, duration_seconds=actual_duration, detail=manifest.detail)
-        manifest.frame_candidates = frames
-        manifest.frames = "extracted" if frames else "missing"
+        cues = cue_frame_segments(transcript_segments)
+        cue_frames = extract_frames_at_timestamps(media_path, frames_dir, cues) if cues else []
+        all_frames = frames + cue_frames
+        manifest.frame_candidates = all_frames
+        manifest.frames = "extracted" if all_frames else "missing"
         manifest.media = "provided"
-        manifest.evidence_status = "partial_extraction" if frames or audio_path else "metadata_only"
+        manifest.metadata["frames_selected"] = len(all_frames)
+        manifest.metadata["cue_frames"] = len(cue_frames)
+        manifest.metadata["cues"] = cues
+
+        if _wants_ocr(manifest.detail, request.prompt) and all_frames:
+            if ocr_available():
+                targets = [f.path for f in (cue_frames or all_frames) if f.path]
+                ocr_hits = ocr_frames(targets)
+                manifest.ocr = "extracted" if ocr_hits else "empty"
+                (video_dir / "ocr.md").write_text(
+                    "# OCR\n\n" + ("\n".join(f"## {Path(h['path']).name}\n\n{h['text']}\n" for h in ocr_hits) or "No on-screen text detected.\n"),
+                    encoding="utf-8",
+                )
+                manifest.metadata["ocr_path"] = str(video_dir / "ocr.md")
+            else:
+                manifest.ocr = "unavailable"
+                manifest.warnings.append("ocr_unavailable: install tesseract for on-screen text")
+
+        if manifest.detail in _RICH_MODES and all_frames:
+            sheet_path, sheet_status = build_contact_sheet([f.path for f in all_frames if f.path], video_dir / "contact-sheet.jpg")
+            manifest.contact_sheet = sheet_status
+            if sheet_path:
+                manifest.metadata["contact_sheet_path"] = str(sheet_path)
+            elif sheet_status not in {"no_frames"}:
+                manifest.warnings.append(f"contact_sheet_{sheet_status}: install ImageMagick or Pillow for contact sheets")
+
+        has_visual = bool(all_frames)
+        has_transcript = bool(transcript_segments)
+        if has_transcript and has_visual:
+            manifest.evidence_status = "full"
+        elif has_visual or has_transcript or audio_path:
+            manifest.evidence_status = "partial_extraction"
+        else:
+            manifest.evidence_status = "metadata_only"
 
     paths = {
         "manifest": str(root / "manifest.json"),
@@ -95,8 +181,10 @@ def write_workspace_bundle(request: VideoEvidenceRequest, workspace: str | Path,
         "extract": str(root / "02-extract.md"),
     }
     (video_dir / "metadata.json").write_text(json.dumps(manifest.metadata, indent=2), encoding="utf-8")
-    transcript_status = "unavailable" if manifest.transcript == "unavailable" else "missing"
-    (video_dir / "transcript.md").write_text(f"# Transcript\n\nStatus: {transcript_status}\n", encoding="utf-8")
+    if transcript_segments:
+        (video_dir / "transcript.md").write_text(segments_to_markdown(transcript_segments, source=manifest.transcript_source), encoding="utf-8")
+    else:
+        (video_dir / "transcript.md").write_text(f"# Transcript\n\nStatus: {manifest.transcript}\nSource: {manifest.transcript_source}\n", encoding="utf-8")
     (root / "02-extract.md").write_text(
         "# Hermes Video evidence extract\n\n"
         f"Source: {request.source_url}\n"
@@ -106,7 +194,7 @@ def write_workspace_bundle(request: VideoEvidenceRequest, workspace: str | Path,
         + ("Frames extracted for visual review.\n" if manifest.frames == "extracted" else "No transcript or frames have been extracted yet. This bundle is a planned evidence pass only.\n"),
         encoding="utf-8",
     )
-    analysis_ready = _write_analysis_ready(root, manifest)
+    analysis_ready = _write_analysis_ready(root, manifest, ocr_hits=ocr_hits)
     paths["analysis_ready"] = str(analysis_ready)
     manifest.write_json(paths["manifest"])
     return paths

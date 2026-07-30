@@ -1,7 +1,10 @@
 """Hermes Video evidence preparation package."""
 from .bundle import build_planned_manifest, write_workspace_bundle
+from .captions import parse_captions, segments_to_markdown
+from .metadata import fetch_metadata, pick_caption_lang
 from .models import DetailMode, EvidenceStatus, FrameCandidate, VideoEvidenceRequest, VideoEvidenceManifest
-from .planner import frame_budget, cue_frame_timestamps, select_detail_defaults
+from .planner import cue_frame_segments, cue_frame_timestamps, frame_budget, select_detail_defaults
+from .stt import transcribe_audio, whisper_available
 
 __all__ = [
     "DetailMode",
@@ -11,7 +14,14 @@ __all__ = [
     "VideoEvidenceManifest",
     "build_planned_manifest",
     "write_workspace_bundle",
+    "parse_captions",
+    "segments_to_markdown",
+    "fetch_metadata",
+    "pick_caption_lang",
     "frame_budget",
+    "cue_frame_segments",
     "cue_frame_timestamps",
     "select_detail_defaults",
+    "transcribe_audio",
+    "whisper_available",
 ]

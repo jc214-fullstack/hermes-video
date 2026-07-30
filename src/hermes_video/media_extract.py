@@ -74,3 +74,39 @@ def extract_frames(media_path: str | Path, frames_dir: str | Path, *, duration_s
         FrameCandidate(index=i + 1, timestamp_seconds=round(i * interval, 3), reason="uniform", path=str(path))
         for i, path in enumerate(paths)
     ]
+
+
+def extract_frames_at_timestamps(
+    media_path: str | Path,
+    frames_dir: str | Path,
+    cues: list[dict],
+    *,
+    reason: str = "transcript_cue",
+) -> list[FrameCandidate]:
+    """Extract one frame per cue timestamp (accurate seek).
+
+    ``cues`` is ``[{timestamp_seconds, cue_text}]``. Frames are named
+    ``cue-<ts>.jpg`` so they never collide with uniform ``frame-*.jpg`` output.
+    """
+    frames_root = Path(frames_dir)
+    frames_root.mkdir(parents=True, exist_ok=True)
+    out: list[FrameCandidate] = []
+    for i, cue in enumerate(cues):
+        ts = float(cue.get("timestamp_seconds", 0) or 0)
+        target = frames_root / f"cue-{ts:08.3f}.jpg"
+        proc = subprocess.run(
+            ["ffmpeg", "-y", "-ss", str(ts), "-i", str(media_path), "-frames:v", "1", "-q:v", "2", str(target)],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        if proc.returncode == 0 and target.exists():
+            out.append(
+                FrameCandidate(
+                    index=i + 1,
+                    timestamp_seconds=round(ts, 3),
+                    reason=reason,
+                    path=str(target),
+                    cue_text=cue.get("cue_text"),
+                )
+            )
+    return out

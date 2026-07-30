@@ -95,16 +95,29 @@ def cue_frame_timestamps(segments: Iterable[dict], *, pad_seconds: float = 0.0) 
 
     Segments may contain `text` plus `start` or `timestamp_seconds`.
     """
-    cues: list[float] = []
+    return [cue["timestamp_seconds"] for cue in cue_frame_segments(segments, pad_seconds=pad_seconds)]
+
+
+def cue_frame_segments(segments: Iterable[dict], *, pad_seconds: float = 0.0) -> list[dict]:
+    """Like :func:`cue_frame_timestamps` but keeps the cue text and phrase.
+
+    Returns ``[{timestamp_seconds, cue_text, cue_phrase}]`` for transcript
+    moments that should force a screenshot (e.g. "look at this", "this repo").
+    """
+    cues: list[dict] = []
+    seen: set[float] = set()
     for segment in segments:
         text = str(segment.get("text") or "")
-        if not CUE_RE.search(text):
+        match = CUE_RE.search(text)
+        if not match:
             continue
         value = segment.get("start", segment.get("timestamp_seconds", 0))
         try:
             ts = max(0.0, float(value) + pad_seconds)
         except (TypeError, ValueError):
             continue
-        if ts not in cues:
-            cues.append(ts)
+        if ts in seen:
+            continue
+        seen.add(ts)
+        cues.append({"timestamp_seconds": ts, "cue_text": text.strip(), "cue_phrase": match.group(0)})
     return cues

@@ -34,6 +34,8 @@ class VideoEvidenceRequest:
     end: float | None = None
     timestamps: tuple[float, ...] = ()
     workspace: str | None = None
+    captions_path: str | None = None
+    enable_stt: bool = False
 
 
 @dataclass(frozen=True)
@@ -42,6 +44,7 @@ class FrameCandidate:
     timestamp_seconds: float
     reason: str
     path: str | None = None
+    cue_text: str | None = None
 
 
 @dataclass
@@ -53,8 +56,10 @@ class VideoEvidenceManifest:
     caption: str = "missing"
     media: str = "missing"
     transcript: str = "missing"
+    transcript_source: str = "none"
     frames: str = "skipped"
     ocr: str = "unavailable"
+    contact_sheet: str = "unavailable"
     description: str = "missing"
     external_verification: str = "none"
     graphify_handoff: str = "not_applicable"
