@@ -6,7 +6,7 @@
 
 Already made:
 
-- Repo exists: `/home/dylan-malik/projects/hermes-video`.
+- Repo exists: `/home/dylan-malik/projects/hermes-video-dev`.
 - CLI entry exists: `hermes-video`.
 - Current CLI plans/seeds a workspace bundle only.
 - Models exist for `VideoEvidenceRequest`, `VideoEvidenceManifest`, `DetailMode`, `EvidenceStatus`, `FrameCandidate`.

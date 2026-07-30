@@ -8,6 +8,7 @@ from typing import Any
 
 class DetailMode(StrEnum):
     QUICK = "quick"
+    EFFICIENT = "efficient"
     BALANCED = "balanced"
     DEEP = "deep"
     FOCUSED = "focused"
