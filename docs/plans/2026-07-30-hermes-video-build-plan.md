@@ -89,16 +89,29 @@ Build:
 
 Doctor checks:
 
-- `yt-dlp`
-- `ffmpeg`
-- `ffprobe`
-- `tesseract`
-- STT backend availability/env
+Required core deps:
+
+- `yt-dlp` — URL metadata/captions/download.
+- `ffmpeg` — audio/frame/contact-sheet prep.
+- `ffprobe` — duration/resolution/media inspection.
+
+Required-for-rich-evidence deps:
+
+- `tesseract` — OCR for on-screen text.
+- ImageMagick `magick` or Python/PIL fallback — contact sheet.
+- best available Whisper/STT backend — transcript fallback when captions are missing.
+
+Auto-install policy:
+
+- Hermes Video may auto-install missing dependencies when the user runs a command that needs them.
+- `doctor` must define exactly what is missing and which install command it would run.
+- No silent opaque installs: report/install steps in output, but do not block on asking every time.
 
 Acceptance:
 
 - CLI tests pass.
-- Doctor reports ok/missing/fix-hint for each dependency.
+- Doctor reports ok/missing/fix-hint/install command for each dependency.
+- Doctor can distinguish already-available deps from install-needed deps.
 
 ### Slice 2 — yt-dlp metadata/captions
 
@@ -170,11 +183,16 @@ Build:
 
 Possible STT backends:
 
-- local `faster-whisper`
-- Groq Whisper
-- OpenAI Whisper
+- local `faster-whisper` when installed/usable.
+- Groq Whisper if configured.
+- OpenAI Whisper if configured.
 
-Default should be graceful unavailable unless backend/env exists.
+Default STT policy:
+
+- Use the best available Whisper-compatible backend.
+- Prefer local `faster-whisper` when available for privacy/locality.
+- If local is unavailable but Groq/OpenAI env is configured, use the configured external backend.
+- If no backend is available, auto-install/configure when the selected mode requires STT and installation is possible; otherwise mark STT unavailable and keep the run partial.
 
 Acceptance:
 
@@ -266,12 +284,24 @@ Acceptance:
 - One real local video command produces full bundle.
 - One real public URL command produces at least metadata/caption bundle or honest blocker.
 
+## Implementation decisions locked
+
+- STT default: use the best available Whisper-compatible backend. Prefer local `faster-whisper` when available; this host already has `faster_whisper` importable.
+- Auto-install: Hermes Video may auto-install missing dependencies when needed, but must define/report the deps and install commands through `doctor`.
+- Test URL: Mike will provide live URL later; build with local/safe fixtures first.
+- Detail naming: support both Claude Video aliases and Hermes names.
+- V1 scope: YouTube + local/direct files first, Instagram after.
+- Final answer: Hermes Video remains evidence-only. Hermes/System B writes interpretation.
+
+Current host dependency check:
+
+- `yt-dlp`: available at `/home/dylan-malik/.local/bin/yt-dlp`
+- `ffmpeg`: available at `/usr/bin/ffmpeg`
+- `ffprobe`: available at `/usr/bin/ffprobe`
+- `tesseract`: available at `/usr/bin/tesseract`
+- `magick`: available at `/usr/bin/magick`
+- Python `faster_whisper`: available
+
 ## Qualifying questions
 
-Only decisions needed before implementation:
-
-1. STT default: should v1 prefer local `faster-whisper`, Groq Whisper, OpenAI Whisper, or graceful-unavailable until configured?
-2. Should the CLI use Claude Video naming exactly (`efficient`, `balanced`, `token-burner`) or our current Hermes names (`quick`, `balanced`, `deep`, `focused`, `full`)? My default: support both aliases.
-3. Should v1 optimize for YouTube + local files only, then Instagram next? My default: yes.
-4. Should Hermes Video include its own answer generation? My default: no, evidence only; Hermes/media-analysis writes final answer.
-5. Should we install missing dependencies if absent, or only doctor/report instructions? My default: doctor/report first, no surprise installs.
+Resolved. No blocking questions remain before implementation.
