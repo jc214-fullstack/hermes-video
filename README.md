@@ -132,6 +132,8 @@ never committed.
 
 - `public/docs/README.md` — public docs index.
 - `public/docs/claude-video-parity.md` — how the Claude Video `/watch` pattern maps to this implementation.
+- `public/docs/live-parity-matrix.md` — live/source proof matrix for captioned YouTube, Shorts-style URLs, no-caption STT, blocked URLs, and local OCR samples.
+- `public/examples/claude-video-parity-sample/` — sanitized sample output bundle without raw media.
 - `public/docs/system-b-integration.md` — the System B ingest contract.
 - `public/docs/testing.md` — verification gates.
 - `public/docs/hermes-video-skill-roadmap.md` — remaining skill/system work.

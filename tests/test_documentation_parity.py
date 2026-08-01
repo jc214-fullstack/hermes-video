@@ -6,6 +6,8 @@ PUBLIC_DOCS = ROOT / "public" / "docs"
 PARITY_DOC = PUBLIC_DOCS / "claude-video-parity.md"
 ROADMAP_DOC = PUBLIC_DOCS / "hermes-video-skill-roadmap.md"
 README = ROOT / "README.md"
+SAMPLE_DIR = ROOT / "public" / "examples" / "claude-video-parity-sample"
+LIVE_MATRIX = PUBLIC_DOCS / "live-parity-matrix.md"
 
 
 def test_claude_video_parity_doc_mirrors_reference_workflow():
@@ -68,4 +70,42 @@ def test_readme_points_to_devwork_repo_and_parity_docs():
 
     assert "hermes-video-devwork" in text
     assert "public/docs/claude-video-parity.md" in text
+    assert "public/docs/live-parity-matrix.md" in text
+    assert "public/examples/claude-video-parity-sample/" in text
     assert "public/docs/hermes-video-skill-roadmap.md" in text
+
+
+def test_public_sample_output_bundle_is_present_and_sanitized():
+    required = [
+        "README.md",
+        "manifest.sample.json",
+        "analysis-ready.sample.md",
+        "transcript.sample.md",
+        "ocr.sample.md",
+        "frames-index.sample.md",
+    ]
+    for name in required:
+        assert (SAMPLE_DIR / name).exists()
+
+    combined = "\n".join((SAMPLE_DIR / name).read_text(errors="replace") for name in required)
+    assert "evidence_status" in combined
+    assert "analysis-ready" in combined
+    assert "frames_dedup_backend" in combined
+    assert "/home/dylan-malik" not in combined
+    assert "/tmp/hermes-video" not in combined
+    assert "[REDACTED]" not in combined
+
+
+def test_live_parity_matrix_records_core_claude_video_cases():
+    text = LIVE_MATRIX.read_text()
+    required = [
+        "Captioned YouTube quick",
+        "Captioned YouTube balanced",
+        "YouTube Shorts-style URL",
+        "No-caption YouTube + STT",
+        "Blocked/unavailable YouTube",
+        "Local/direct OCR-heavy sample",
+        "frames.dedup_backend=perceptual",
+    ]
+    for phrase in required:
+        assert phrase in text

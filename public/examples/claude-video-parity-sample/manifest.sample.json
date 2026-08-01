@@ -1,0 +1,63 @@
+{
+  "source_url": "sample-input/claude-parity-sample.mp4",
+  "platform": "direct",
+  "detail": "deep",
+  "evidence_status": "full",
+  "caption": "missing",
+  "media": "provided",
+  "transcript": "captions",
+  "transcript_source": "captions",
+  "frames": "extracted",
+  "ocr": "extracted",
+  "contact_sheet": "imagemagick",
+  "description": "missing",
+  "external_verification": "none",
+  "graphify_handoff": "not_applicable",
+  "frame_candidates": [
+    {
+      "index": 1,
+      "timestamp_seconds": 2.0,
+      "reason": "transcript_cue",
+      "path": "<sample-workspace>/video/frames/cue-0002.000.jpg",
+      "cue_text": "Look here at the on-screen text and contact sheet evidence."
+    }
+  ],
+  "warnings": [],
+  "metadata": {
+    "duration_seconds": 5.0,
+    "planning_defaults": {
+      "mode": "deep",
+      "max_frames": 180,
+      "strategy": "scene_keyframe_ocr",
+      "ocr": true
+    },
+    "planned_frame_budget": 180,
+    "workspace": "<sample-workspace>",
+    "probe": {
+      "duration_seconds": 5.0,
+      "width": 640,
+      "height": 360,
+      "video_codec": "h264",
+      "audio_codec": "aac",
+      "has_audio": true
+    },
+    "audio_path": "<sample-workspace>/video/audio.wav",
+    "media_path": "sample-input/claude-parity-sample.mp4",
+    "frames_candidate_count": 13,
+    "frames_selected": 1,
+    "frames_dropped_duplicate": 12,
+    "frames_dedup_backend": "perceptual",
+    "frames_dedup_threshold": 4,
+    "cue_frames": 1,
+    "user_timestamp_frames": 0,
+    "cues": [
+      {
+        "timestamp_seconds": 2.0,
+        "cue_text": "Look here at the on-screen text and contact sheet evidence.",
+        "cue_phrase": "Look here"
+      }
+    ],
+    "ocr_path": "<sample-workspace>/video/ocr.md",
+    "contact_sheet_path": "<sample-workspace>/video/contact-sheet.jpg"
+  }
+}
