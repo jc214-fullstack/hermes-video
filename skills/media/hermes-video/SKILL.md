@@ -100,7 +100,7 @@ Frame `reason` values to preserve in manifests/final references: `scene`, `keyfr
 
 See `references/system-b-contract.md` for the exact System B ingest shape.
 
-When working in the `hermes-video-devwork` repo, also read `docs/claude-video-parity.md` before parity/design changes and `docs/hermes-video-skill-roadmap.md` before skill/system integration changes.
+When working in the `hermes-video-devwork` repo, also read `public/docs/claude-video-parity.md` before parity/design changes, `public/docs/hermes-video-skill-roadmap.md` before skill/system integration changes, and `private/docs` for internal implementation/test notes when available.
 
 ## Operating Workflow
 

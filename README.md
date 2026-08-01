@@ -74,7 +74,7 @@ python -m hermes_video.cli watch <SOURCE> --media-path <LOCAL_MP4> --detail bala
 
 Frame `reason` values recorded in the manifest: `scene`, `keyframe`, `uniform`
 (deterministic fallback), `focused_range`, `user_timestamp`, `transcript_cue`.
-See `docs/system-b-integration.md` for the full JSON/manifest contract.
+See `public/docs/system-b-integration.md` for the full JSON/manifest contract.
 
 ## Hermes skill
 
@@ -84,5 +84,9 @@ The skill is the operator surface for deciding when to run Hermes Video, which d
 
 ## Documentation
 
-- `docs/claude-video-parity.md` maps the Claude Video `/watch` pattern to the Hermes-native implementation.
-- `docs/hermes-video-skill-roadmap.md` tracks the remaining Hermes skill/system work: install/publish surface, Hermes slash command, System B adapter, live URL canary, perceptual dedup, GBrain/ObiVault writeback, and OwnLight88 editing handoff.
+- `public/docs/README.md` is the public/shareable docs index.
+- `public/docs/claude-video-parity.md` maps the Claude Video `/watch` pattern to the Hermes-native implementation.
+- `public/docs/system-b-integration.md` defines the shareable System B ingest contract.
+- `public/docs/testing.md` explains the public verification gates.
+- `public/docs/hermes-video-skill-roadmap.md` tracks the remaining Hermes skill/system work.
+- `private/docs/` is the internal workspace for implementation plans, private test notes, session-derived notes, and non-public operator context.

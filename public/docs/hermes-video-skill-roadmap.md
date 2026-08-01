@@ -102,7 +102,7 @@ Acceptance gate: a reference URL can produce evidence structured enough for the 
 ## Near-term order
 
 1. Rename/verify the GitHub repo as `hermes-video-devwork`.
-2. Keep docs aligned with Claude Video parity in `docs/claude-video-parity.md`.
+2. Keep docs aligned with Claude Video parity in `public/docs/claude-video-parity.md`.
 3. Add System B adapter so media-analysis calls Hermes Video automatically.
 4. Add Hermes `/watch` or plugin wrapper.
 5. Run a live URL canary supplied by Mike.

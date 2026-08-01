@@ -2,8 +2,9 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-PARITY_DOC = ROOT / "docs" / "claude-video-parity.md"
-ROADMAP_DOC = ROOT / "docs" / "hermes-video-skill-roadmap.md"
+PUBLIC_DOCS = ROOT / "public" / "docs"
+PARITY_DOC = PUBLIC_DOCS / "claude-video-parity.md"
+ROADMAP_DOC = PUBLIC_DOCS / "hermes-video-skill-roadmap.md"
 README = ROOT / "README.md"
 
 
@@ -47,5 +48,5 @@ def test_readme_points_to_devwork_repo_and_parity_docs():
     text = README.read_text()
 
     assert "hermes-video-devwork" in text
-    assert "docs/claude-video-parity.md" in text
-    assert "docs/hermes-video-skill-roadmap.md" in text
+    assert "public/docs/claude-video-parity.md" in text
+    assert "public/docs/hermes-video-skill-roadmap.md" in text
