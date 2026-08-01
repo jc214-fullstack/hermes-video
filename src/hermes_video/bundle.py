@@ -57,6 +57,7 @@ def build_system_b_summary(workspace: str | Path, paths: dict[str, str]) -> dict
             "dropped_duplicate": meta.get("frames_dropped_duplicate"),
         },
         "ocr": {"status": manifest["ocr"], "path": meta.get("ocr_path")},
+        "contact_sheet": {"status": manifest.get("contact_sheet"), "path": meta.get("contact_sheet_path")},
         "media": {"status": manifest["media"], "path": meta.get("media_path") or meta.get("downloaded_media_path")},
         "warnings": manifest["warnings"],
     }

@@ -40,11 +40,13 @@ def test_summary_exposes_source_metadata(tmp_path):
         "transcript_source": "captions",
         "frames": "extracted",
         "ocr": "extracted",
+        "contact_sheet": "imagemagick",
         "media": "downloaded",
         "warnings": [],
         "frame_candidates": [],
         "metadata": {
             "duration_seconds": 123.4,
+            "contact_sheet_path": str(tmp_path / "video" / "contact-sheet.jpg"),
             "url_metadata": {
                 "title": "Example clip",
                 "uploader": "Example Channel",
@@ -62,3 +64,7 @@ def test_summary_exposes_source_metadata(tmp_path):
     assert source["channel"] == "Example Channel"
     assert source["duration_seconds"] == 123.4
     assert source["platform"] == "youtube"
+    assert summary["contact_sheet"] == {
+        "status": "imagemagick",
+        "path": str(tmp_path / "video" / "contact-sheet.jpg"),
+    }

@@ -28,6 +28,7 @@ Working:
 - Native `/watch` text parsing via the `invoke` subcommand: extracts source/prompt, infers detail mode, parses `from X to Y` ranges and `at X` timestamps, and runs the same engine into a workspace.
 - Offline deterministic canaries.
 - Live YouTube canary baseline using `https://www.youtube.com/watch?v=Ptd860T66WY`: `canary --live-url` passed, quick watch produced caption-only partial evidence, balanced watch produced full evidence with downloaded media/captions/frames, and deep watch produced full evidence with captions/frames/OCR/contact sheet.
+- Native `invoke` baseline using the same YouTube URL passed in quick, balanced, deep, and focused text forms. Quick produced caption-only partial evidence; balanced produced full evidence with source title/uploader/duration, downloaded media, captions, and frames; deep produced full evidence with OCR and contact sheet; focused parsed `from 8:20 to 8:55 at 8:30` into `start=500.0`, `end=535.0`, `timestamps=[510.0]`, and produced focused/user timestamp frames.
 
 Live-test follow-ups now resolved:
 
