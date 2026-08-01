@@ -51,6 +51,22 @@ def test_hermes_video_skill_contains_operational_contract():
         assert phrase in body
 
 
+def test_hermes_video_skill_supports_plain_text_watch_requests():
+    _, body = _frontmatter_and_body(SKILL_PATH)
+
+    required_phrases = [
+        "Plain Text Watch Requests",
+        "If the user says",
+        "watch this video",
+        "Do not merely explain that Hermes Video exists",
+        "run Hermes Video immediately",
+        "Ask for the URL or file path only when the request contains no usable source",
+        "read `analysis-ready.md` before answering",
+    ]
+    for phrase in required_phrases:
+        assert phrase in body
+
+
 def test_hermes_video_skill_has_progressive_reference_for_system_b_contract():
     assert REFERENCE_PATH.exists()
     reference = REFERENCE_PATH.read_text()

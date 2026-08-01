@@ -31,6 +31,29 @@ Use this skill for:
 - OwnLight88/System B workflows where platform recovery has already produced a local MP4 or direct media URL.
 - Verification runs where you need a canary report before trusting the video pipeline.
 
+## Plain Text Watch Requests
+
+If the user says “watch this video,” “can you watch this,” “analyze this video,” “summarize this reel,” or similar plain text and includes a usable URL, direct media URL, or local file path, Do not merely explain that Hermes Video exists; run Hermes Video immediately from the repo root, create a timestamped workspace outside git-tracked docs, read `manifest.json` and `analysis-ready.md` before answering, and answer only from the evidence that was actually produced.
+
+Ask for the URL or file path only when the request contains no usable source. If the user provides a platform URL that cannot be inspected or downloaded, report the blocked/partial status from Hermes Video instead of fabricating a watch.
+
+Default routing for plain text requests:
+
+- Normal “watch/analyze/summarize this video” request: `--detail balanced`.
+- “Quick summary” where captions are enough: `--detail quick`.
+- “What is shown on screen,” code, repo, website, command, UI, OCR, property, or visual proof: `--detail deep`.
+- Any timestamp/range request: `--detail focused` with `--timestamps`, `--start`, and/or `--end`.
+- Explicit exhaustive request: `--detail full`.
+
+Minimum command shape:
+
+```bash
+cd /home/dylan-malik/projects/hermes-video-dev
+PYTHONPATH=src python -m hermes_video.cli watch "<SOURCE>" --detail balanced --workspace "/tmp/hermes-video-watch-<safe-id>" --json
+```
+
+Done means Hermes Video actually ran, artifacts exist, warnings/status were inspected, read `analysis-ready.md` before answering, and the final reply names whether the run was `full`, `partial_extraction`, `metadata_only`, or `blocked`.
+
 Do not use this skill for:
 
 - Static screenshots or PDFs; use OCR/document skills instead.
