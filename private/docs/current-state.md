@@ -23,7 +23,7 @@ Working:
 - Focused range/user timestamp frame extraction.
 - Transcript-cue frame forcing.
 - OCR/contact-sheet hooks.
-- Exact-hash frame dedup counts.
+- Perceptual near-duplicate frame dedup (Pillow aHash, Hamming threshold 4) with exact-hash fallback and `frames_dedup_backend`/`frames_dropped_duplicate` accounting; forced frames exempt from perceptual dropping.
 - Stable System B JSON/manifest contract, now with a top-level `source` block (title/uploader/channel/duration_seconds) when metadata is available.
 - Native `/watch` text parsing via the `invoke` subcommand: extracts source/prompt, infers detail mode, parses `from X to Y` ranges and `at X` timestamps, and runs the same engine into a workspace.
 - Offline deterministic canaries.
@@ -42,6 +42,5 @@ Still needed for full Hermes-native use:
 - Hermes gateway/plugin that routes a real operator `/watch` message into `invoke` (the deterministic parser layer now exists; the Hermes slash command surface does not).
 - System B adapter that calls Hermes Video automatically.
 - Live URL canary using a supplied public URL.
-- Perceptual dedup upgrade.
 - Optional GBrain/ObiVault writeback.
 - OwnLight88 editing handoff into Format Card / Remotion / FFmpeg workflow.

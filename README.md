@@ -85,9 +85,14 @@ Every workspace holds:
 The `watch`/`invoke` JSON `summary` block is what a downstream agent ingests: it
 carries `evidence_status`, transcript/frames/OCR/media state, `warnings`, and a
 `source` block (title / uploader / channel / duration_seconds) when metadata is
-available. Frame `reason` values recorded in the manifest: `scene`, `keyframe`,
-`uniform` (deterministic fallback), `focused_range`, `user_timestamp`,
-`transcript_cue`.
+available. The `frames` block reports `selected`, `dropped_duplicate`, and
+`dedup_backend` (`perceptual` when Pillow is present, else `exact`). Frame
+`reason` values recorded in the manifest: `scene`, `keyframe`, `uniform`
+(deterministic fallback), `focused_range`, `user_timestamp`, `transcript_cue`.
+
+Near-duplicate frames are suppressed with a Pillow average-hash perceptual pass
+(exact-hash fallback without Pillow); explicitly forced frames (`user_timestamp`,
+`transcript_cue`) are never perceptually dropped.
 
 Hard rule: no transcript + no frames is never `full` — it stays
 `metadata_only`, `blocked`, `partial_extraction`, or `needs_review`.

@@ -72,7 +72,7 @@ Current Hermes Video already covers the main `/watch` evidence mechanics:
 - transcript-cue screenshots
 - STT fallback hook through local faster-whisper when requested/available
 - OCR/contact-sheet hooks
-- exact-hash duplicate suppression with selected/dropped counts
+- near-duplicate frame suppression: a Pillow average-hash (aHash) perceptual pass drops visually redundant sampled frames within a small Hamming threshold, with an exact-hash fallback when Pillow is absent, reported via `frames_dedup_backend`/`frames_dropped_duplicate`; explicitly forced frames (user timestamps, transcript cues) are exempt from perceptual dropping
 - rolling YouTube auto-caption cleanup so overlapping caption lines collapse into readable transcript segments while preserving timestamps
 - provisional `duration_unknown` warning is cleared once yt-dlp/ffprobe report a real duration
 - stable System B `watch --json` summary, including a top-level `source` block (title/uploader/channel/duration_seconds) when metadata is available
@@ -85,17 +85,24 @@ runs reached honest caption-only / full evidence status, and the follow-ups from
 that run (stale duration warning, missing summary source metadata, noisy
 auto-captions) are now fixed.
 
-## Parity gaps / next upgrades
+## Parity status
 
-These are the remaining differences from the strongest Claude Video behavior:
+The Claude Video `/watch` evidence mechanics above are all implemented,
+including near-duplicate frame suppression. The evidence-prep feature scope is
+at parity: a caller can run the equivalent of `/watch URL question` and get
+transcript + visual evidence, or an honest `partial_extraction` / `blocked` /
+`metadata_only` status, from stable artifacts.
 
-1. **Near-duplicate frame suppression.** Hermes has deterministic exact-hash dedup. Claude Video-style near-duplicate/perceptual dedup should be added behind the same manifest fields.
-2. **Hermes slash command.** The repo-local `invoke` subcommand already parses natural `/watch URL question` text, but the user-facing Hermes gateway/plugin that routes a real operator `/watch` message into it is not wired yet.
-3. **System B adapter.** System B still needs a direct adapter that invokes Hermes Video, reads `summary`/`manifest.json`, and inserts evidence state into media-analysis manifests/final answers.
-4. **Live URL canary.** Offline canaries pass. A supplied public URL should be used to prove live YouTube/caption/media behavior.
-5. **External STT providers.** Local faster-whisper is supported. Groq/OpenAI Whisper routing can be added later if needed.
-6. **Skill distribution.** The repo contains the skill and this profile has it installed. We still need a repeatable install/publish path for other Hermes profiles.
+## Beyond Claude Video parity (not required for parity)
 
-## Acceptance standard
+These are Hermes ecosystem integrations and conveniences, not Claude Video
+`/watch` features. They are intentionally out of scope for parity and tracked
+separately in `hermes-video-skill-roadmap.md`; none of them block the parity
+claim above:
 
-Hermes Video reaches true Claude Video feature sync when a Hermes operator can run the equivalent of `/watch URL question`, get transcript + visual evidence or an honest partial/blocked status, and System B can consume the evidence bundle without scraping prose or guessing what happened.
+- **Hermes slash gateway.** The repo-local `invoke` subcommand already parses natural `/watch URL question` text; a user-facing Hermes gateway/plugin that routes a real operator `/watch` message into it is a Hermes-surface convenience, not a Claude Video feature.
+- **System B adapter.** Automated media-analysis wiring that calls Hermes Video and ingests `summary`/`manifest.json`. The stable ingest contract exists; the adapter is a System B concern.
+- **Live URL canary.** Offline canaries pass; a supplied public URL can additionally prove live YouTube/caption/media behavior.
+- **External STT providers.** Local faster-whisper is supported; Groq/OpenAI Whisper routing can be added later if needed.
+- **Skill distribution.** A repeatable install/publish path for other Hermes profiles.
+- **GBrain/ObiVault writeback and OwnLight88 editing handoff.** Downstream note-keeping and video-editing lanes that consume evidence; explicitly not part of the evidence engine.

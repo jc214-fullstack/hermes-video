@@ -44,6 +44,25 @@ def test_skill_roadmap_names_remaining_work_for_hermes_functionality():
         assert phrase in text
 
 
+def test_roadmap_scopes_integrations_as_beyond_claude_video_parity():
+    text = ROADMAP_DOC.read_text().lower()
+    # Parity is closed and the remaining integrations are framed as future, not
+    # as unmet Claude Video parity requirements.
+    assert "parity is the current deliverable and it is closed" in text
+    assert "beyond" in text and "claude video parity" in text
+    assert "perceptual dedup" in text and "done" in text
+
+
+def test_parity_doc_marks_near_duplicate_dedup_implemented_and_scopes_extras():
+    text = PARITY_DOC.read_text()
+    lower = text.lower()
+    # Near-duplicate suppression is now claimed as implemented parity, not a gap.
+    assert "near-duplicate frame suppression:" in lower
+    assert "frames_dedup_backend" in text
+    # System B / OwnLight88 are framed as beyond parity, not parity requirements.
+    assert "Beyond Claude Video parity (not required for parity)" in text
+
+
 def test_readme_points_to_devwork_repo_and_parity_docs():
     text = README.read_text()
 

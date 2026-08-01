@@ -1,5 +1,13 @@
 # Hermes Video skill roadmap
 
+**Scope note.** Claude Video parity is the current deliverable and it is closed:
+the evidence engine duplicates the Claude Video `/watch` mechanics, including
+perceptual near-duplicate frame suppression (see `claude-video-parity.md`).
+Everything below is *beyond* Claude Video parity — Hermes ecosystem
+integrations and conveniences. None of it is required to call the parity work
+done; it is future/optional and should not be read as an unmet parity
+requirement.
+
 This is the remaining work to turn `hermes-video` from a packaged skill + evidence CLI into a fully Hermes-native video capability.
 
 ## Current state
@@ -65,17 +73,15 @@ Build:
 
 Acceptance gate: one public URL run is saved as a canary report, or the blocker is recorded honestly.
 
-### 5. Perceptual dedup
+### 5. Perceptual dedup — DONE (parity)
 
-Goal: match Claude Video’s near-duplicate suppression more closely.
+Delivered as part of Claude Video parity:
 
-Build:
+- Pillow average-hash (aHash) perceptual dedup with a small Hamming threshold, behind the existing `frames_dedup_backend`/`frames_dropped_duplicate` manifest fields.
+- exact-hash fallback retained when Pillow is missing.
+- deterministic tests prove selected/dropped counts and that explicitly forced frames (user timestamps, transcript cues) are exempt from perceptual dropping.
 
-- lightweight perceptual hash or image-similarity dedup behind existing manifest fields
-- keep exact-hash fallback when optional image deps are missing
-- tests proving selected/dropped frame counts stay deterministic
-
-Acceptance gate: static/near-static video drops visually redundant frames without changing the stable manifest contract.
+Acceptance gate (met): static/near-static video drops visually redundant sampled frames without changing the stable manifest contract.
 
 ### 6. GBrain/ObiVault writeback
 
@@ -108,7 +114,7 @@ Acceptance gate: a reference URL can produce evidence structured enough for the 
 3. Add System B adapter so media-analysis calls Hermes Video automatically.
 4. Add Hermes `/watch` or plugin wrapper.
 5. Run a live URL canary supplied by Mike.
-6. Add perceptual dedup and optional external STT providers.
+6. (Done) Perceptual dedup shipped with parity; optional external STT providers remain future.
 
 ## Done definition
 
