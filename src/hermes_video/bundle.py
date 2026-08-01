@@ -43,6 +43,7 @@ def build_system_b_summary(workspace: str | Path, paths: dict[str, str]) -> dict
     return {
         "workspace": str(workspace),
         "manifest_path": paths["manifest"],
+        "analysis_ready_path": paths.get("analysis_ready"),
         "evidence_status": manifest["evidence_status"],
         "source": {
             "url": manifest.get("source_url"),

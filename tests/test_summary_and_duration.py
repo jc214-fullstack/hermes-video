@@ -57,7 +57,12 @@ def test_summary_exposes_source_metadata(tmp_path):
     manifest_path = tmp_path / "manifest.json"
     manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
 
-    summary = build_system_b_summary(str(tmp_path), {"manifest": str(manifest_path)})
+    analysis_ready_path = tmp_path / "analysis-ready.md"
+    analysis_ready_path.write_text("# ready", encoding="utf-8")
+    summary = build_system_b_summary(
+        str(tmp_path), {"manifest": str(manifest_path), "analysis_ready": str(analysis_ready_path)}
+    )
+    assert summary["analysis_ready_path"] == str(analysis_ready_path)
     source = summary["source"]
     assert source["title"] == "Example clip"
     assert source["uploader"] == "Example Channel"
