@@ -40,9 +40,18 @@ def parse_captions(text: str) -> list[dict]:
                 end = _to_seconds(cue.group(2))
                 body_lines = block[block.index(header) + 1 :]
                 body = _TAG.sub("", " ".join(body_lines)).strip()
-                if start is not None and body and body != last_text:
-                    segments.append({"start": start, "end": end, "text": body})
-                    last_text = body
+                if start is not None and body:
+                    if last_text and body.startswith(last_text):
+                        # Rolling auto-caption grew; extend the prior cue in place
+                        # so overlapping lines collapse to one readable segment.
+                        segments[-1]["text"] = body
+                        segments[-1]["end"] = end
+                        last_text = body
+                    elif last_text and last_text.startswith(body):
+                        pass  # shorter prefix of a line already emitted
+                    else:
+                        segments.append({"start": start, "end": end, "text": body})
+                        last_text = body
         block.clear()
 
     for raw in text.splitlines():

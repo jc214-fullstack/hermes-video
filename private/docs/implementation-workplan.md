@@ -30,7 +30,9 @@ Build a repeatable installer or documented command that installs `skills/media/h
 
 ### 2. Hermes slash command
 
-Build a Hermes slash command or plugin wrapper for `/watch <url-or-path> [question]`. It should create a workspace, call Hermes Video, read `analysis-ready.md`, preserve warnings, and answer only from available evidence.
+Done (repo-local): the `invoke` subcommand parses natural `/watch <url-or-path> [question]` text into a deterministic request (source, prompt, detail, range/timestamps) and runs the engine into a workspace. See `src/hermes_video/invoke.py` and `tests/test_invoke.py`.
+
+Remaining: a Hermes gateway/plugin that maps a real operator `/watch` message onto `hermes_video.cli invoke`, reads `analysis-ready.md`, preserves warnings, and answers only from available evidence.
 
 ### 3. System B adapter
 
@@ -40,7 +42,7 @@ Add a System B adapter that shells out to `python -m hermes_video.cli watch ... 
 
 Run `canary --live-url` with public URLs Mike supplies. Save the JSON/Markdown report privately first, then promote only sanitized proof if useful.
 
-First baseline completed with `https://www.youtube.com/watch?v=Ptd860T66WY`: live canary passed, balanced/deep watch runs reached `evidence_status=full`, captions/media/frames were extracted, and deep mode produced OCR/contact sheet. Follow-up improvements from that run: remove stale duration warnings after ffprobe succeeds, add source title/channel/duration to summary JSON, and clean repeated YouTube auto-caption transcript lines.
+First baseline completed with `https://www.youtube.com/watch?v=Ptd860T66WY`: live canary passed, balanced/deep watch runs reached `evidence_status=full`, captions/media/frames were extracted, and deep mode produced OCR/contact sheet. Follow-up improvements from that run are now shipped: stale duration warnings are cleared after yt-dlp/ffprobe report duration, summary JSON carries a `source` block (title/uploader/channel/duration_seconds), and rolling YouTube auto-caption lines collapse into readable segments.
 
 ### 5. perceptual dedup
 

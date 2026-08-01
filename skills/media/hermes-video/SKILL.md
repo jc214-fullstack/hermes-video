@@ -52,6 +52,15 @@ cd /home/dylan-malik/projects/hermes-video-dev
 PYTHONPATH=src python -m hermes_video.cli watch "<SOURCE>" --detail balanced --workspace "/tmp/hermes-video-watch-<safe-id>" --json
 ```
 
+Native `/watch` shortcut: when the user's message reads like `/watch <url> <question>`
+or `watch this video: <url> ...`, you can hand the whole line to `invoke`, which
+parses the source, prompt, detail mode, and any range/timestamps for you and runs
+the same engine:
+
+```bash
+PYTHONPATH=src python -m hermes_video.cli invoke "/watch <SOURCE> <question>" --workspace "/tmp/hermes-video-watch-<safe-id>" --json
+```
+
 Done means Hermes Video actually ran, artifacts exist, warnings/status were inspected, read `analysis-ready.md` before answering, and the final reply names whether the run was `full`, `partial_extraction`, `metadata_only`, or `blocked`.
 
 Do not use this skill for:
@@ -76,6 +85,9 @@ PYTHONPATH=src python -m hermes_video.cli watch "https://youtu.be/ID" --platform
 
 # Balanced URL pass: download media when visual evidence is required
 PYTHONPATH=src python -m hermes_video.cli watch "https://youtu.be/ID" --platform youtube --detail balanced --workspace out/watch --json
+
+# Native /watch text: parse a natural request and run the engine in one step
+PYTHONPATH=src python -m hermes_video.cli invoke "/watch https://youtu.be/ID from 0:30 to 0:45 what repo and command are shown" --workspace out/watch --json
 
 # Local/direct media pass
 PYTHONPATH=src python -m hermes_video.cli watch ./clip.mp4 --platform direct --media-path ./clip.mp4 --detail balanced --workspace out/watch --json

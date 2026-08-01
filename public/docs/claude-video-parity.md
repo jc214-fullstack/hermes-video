@@ -19,7 +19,9 @@ The Claude Video reference workflow is compact and disciplined:
 
 ## Hermes-native equivalent
 
-Hermes Video implements that evidence-prep shape through a repo CLI and Hermes skill:
+Hermes Video implements that evidence-prep shape through a repo CLI and Hermes skill.
+
+Explicit form (`watch`):
 
 ```bash
 PYTHONPATH=src python -m hermes_video.cli watch <SOURCE> \
@@ -30,6 +32,19 @@ PYTHONPATH=src python -m hermes_video.cli watch <SOURCE> \
   --workspace <OUT_DIR> \
   --json
 ```
+
+Natural `/watch` form (`invoke`) — the Hermes-native equivalent of typing `/watch URL question`:
+
+```bash
+PYTHONPATH=src python -m hermes_video.cli invoke \
+  "/watch https://youtu.be/ID from 0:30 to 0:45 what repo and command are shown" \
+  --workspace <OUT_DIR> --json
+```
+
+`invoke` deterministically extracts the source URL/path, the prompt, the detail
+mode (inferred from the words, e.g. on-screen/repo/code → `deep`, any
+timestamp/range → `focused`, "quick"/"transcript only" → `quick`), and any
+`from X to Y` range or `at X` timestamps, then runs the same evidence engine.
 
 The Hermes version differs from Claude Video in the ownership boundary:
 
@@ -58,16 +73,24 @@ Current Hermes Video already covers the main `/watch` evidence mechanics:
 - STT fallback hook through local faster-whisper when requested/available
 - OCR/contact-sheet hooks
 - exact-hash duplicate suppression with selected/dropped counts
-- stable System B `watch --json` summary
+- rolling YouTube auto-caption cleanup so overlapping caption lines collapse into readable transcript segments while preserving timestamps
+- provisional `duration_unknown` warning is cleared once yt-dlp/ffprobe report a real duration
+- stable System B `watch --json` summary, including a top-level `source` block (title/uploader/channel/duration_seconds) when metadata is available
+- natural `/watch` text parsing via the `invoke` subcommand
 - offline canary runner
 - Hermes skill packaged as `hermes-video`
+
+Live baseline: `https://www.youtube.com/watch?v=Ptd860T66WY` — quick/balanced/deep
+runs reached honest caption-only / full evidence status, and the follow-ups from
+that run (stale duration warning, missing summary source metadata, noisy
+auto-captions) are now fixed.
 
 ## Parity gaps / next upgrades
 
 These are the remaining differences from the strongest Claude Video behavior:
 
 1. **Near-duplicate frame suppression.** Hermes has deterministic exact-hash dedup. Claude Video-style near-duplicate/perceptual dedup should be added behind the same manifest fields.
-2. **Hermes slash command.** The skill exists, but the user-facing `/watch`-like Hermes command/plugin surface is not wired yet.
+2. **Hermes slash command.** The repo-local `invoke` subcommand already parses natural `/watch URL question` text, but the user-facing Hermes gateway/plugin that routes a real operator `/watch` message into it is not wired yet.
 3. **System B adapter.** System B still needs a direct adapter that invokes Hermes Video, reads `summary`/`manifest.json`, and inserts evidence state into media-analysis manifests/final answers.
 4. **Live URL canary.** Offline canaries pass. A supplied public URL should be used to prove live YouTube/caption/media behavior.
 5. **External STT providers.** Local faster-whisper is supported. Groq/OpenAI Whisper routing can be added later if needed.

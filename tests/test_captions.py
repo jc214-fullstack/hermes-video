@@ -37,6 +37,20 @@ def test_parse_captions_dedups_rolling_lines():
     assert len(parse_captions(rolling)) == 1
 
 
+def test_parse_captions_collapses_rolling_overlap():
+    rolling = (
+        "WEBVTT\n\n"
+        "00:00:00.000 --> 00:00:01.000\nwe are going\n\n"
+        "00:00:01.000 --> 00:00:02.000\nwe are going to install\n\n"
+        "00:00:02.000 --> 00:00:03.000\nwe are going to install the tool\n"
+    )
+    segments = parse_captions(rolling)
+    assert len(segments) == 1
+    assert segments[0]["text"] == "we are going to install the tool"
+    assert segments[0]["start"] == 0.0
+    assert segments[0]["end"] == 3.0
+
+
 def test_segments_to_markdown_includes_source_and_count():
     md = segments_to_markdown(parse_captions(VTT), source="captions")
     assert "Source: captions" in md

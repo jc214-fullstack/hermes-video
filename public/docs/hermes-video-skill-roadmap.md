@@ -9,6 +9,7 @@ The repo has a working evidence engine, a packaged skill, System B contract docs
 Current proof points:
 
 - `watch` CLI writes `manifest.json`, `analysis-ready.md`, transcript/frames/OCR/contact-sheet artifacts where available.
+- `invoke` CLI parses natural `/watch <url> question` / `watch this video: <url> ...` text into a deterministic request and runs the same engine.
 - `doctor` CLI reports local dependency readiness.
 - `canary` CLI runs deterministic offline cases.
 - Skill exists at `skills/media/hermes-video/SKILL.md` and has `references/system-b-contract.md`.
@@ -31,11 +32,12 @@ Acceptance gate: a fresh Hermes profile can install the skill and load it withou
 
 Goal: expose a Hermes-native `/watch`-style operator path instead of requiring manual CLI commands.
 
-Build options:
+Done so far: the repo-local `invoke` subcommand accepts natural `/watch <url> question` text, infers detail mode, parses ranges/timestamps, and runs the engine into a workspace. This is the deterministic parser layer the gateway needs.
 
-- `/watch <url-or-path> [question]` gateway/CLI command, or
-- plugin/tool wrapper that calls `hermes_video.cli watch`, or
-- documented command alias that creates a workspace, runs `watch --json`, and loads `analysis-ready.md` back into the session.
+Still to build:
+
+- a Hermes gateway/plugin surface that maps a real operator `/watch` message to `hermes_video.cli invoke`, or
+- documented command alias that creates a workspace, runs `invoke --json`, and loads `analysis-ready.md` back into the session.
 
 Acceptance gate: user can ask Hermes to watch a video and Hermes runs the evidence engine automatically with a saved workspace and honest status report.
 

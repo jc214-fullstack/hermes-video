@@ -14,9 +14,15 @@ from .ocr import ocr_available, ocr_frames
 from .planner import cue_frame_segments, frame_budget, normalize_detail_mode, select_detail_defaults
 from .stt import transcribe_audio, whisper_available
 
+_DURATION_WARNING = "duration_unknown: frame budget is provisional"
 _OCR_MODES = {"deep", "focused", "full"}
 _OCR_PROMPT_HINTS = ("text", "repo", "repository", "github", "website", "site", "url", "install", "command", "code", "screen")
 _RICH_MODES = {"deep", "focused", "full"}
+
+
+def _drop_provisional_duration_warning(manifest: VideoEvidenceManifest) -> None:
+    """Remove the provisional duration warning once real duration is known."""
+    manifest.warnings = [w for w in manifest.warnings if w != _DURATION_WARNING]
 
 
 def build_system_b_summary(workspace: str | Path, paths: dict[str, str]) -> dict:
@@ -24,10 +30,20 @@ def build_system_b_summary(workspace: str | Path, paths: dict[str, str]) -> dict
     manifest = json.loads(Path(paths["manifest"]).read_text(encoding="utf-8"))
     meta = manifest.get("metadata", {})
     frames = manifest.get("frame_candidates", [])
+    url_meta = meta.get("url_metadata") or {}
     return {
         "workspace": str(workspace),
         "manifest_path": paths["manifest"],
         "evidence_status": manifest["evidence_status"],
+        "source": {
+            "url": manifest.get("source_url"),
+            "platform": manifest.get("platform"),
+            "title": url_meta.get("title"),
+            "uploader": url_meta.get("uploader"),
+            "channel": url_meta.get("uploader"),
+            "webpage_url": url_meta.get("webpage_url"),
+            "duration_seconds": meta.get("duration_seconds"),
+        },
         "transcript": {
             "status": manifest["transcript"],
             "source": manifest["transcript_source"],
@@ -54,7 +70,7 @@ def build_planned_manifest(request: VideoEvidenceRequest, *, duration_seconds: f
     media_status = "provided" if request.media_path else "missing"
     warnings: list[str] = []
     if duration_seconds is None:
-        warnings.append("duration_unknown: frame budget is provisional")
+        warnings.append(_DURATION_WARNING)
     if not request.media_path and request.platform not in {"youtube", "direct"}:
         warnings.append("media_path_missing: platform resolver must recover video before visual pass")
     return VideoEvidenceManifest(
@@ -166,6 +182,7 @@ def write_workspace_bundle(request: VideoEvidenceRequest, workspace: str | Path,
         else:
             if url_metadata.get("duration_seconds") and duration_seconds is None:
                 manifest.metadata["duration_seconds"] = url_metadata.get("duration_seconds")
+                _drop_provisional_duration_warning(manifest)
             manifest.description = "available" if url_metadata.get("description") else manifest.description
             caption_lang = pick_caption_lang(url_metadata)
             if caption_lang and not request.captions_path:
@@ -203,6 +220,8 @@ def write_workspace_bundle(request: VideoEvidenceRequest, workspace: str | Path,
         actual_duration = float(probe.get("duration_seconds") or duration_seconds or 0)
         manifest.metadata["probe"] = probe
         manifest.metadata["duration_seconds"] = actual_duration
+        if actual_duration > 0:
+            _drop_provisional_duration_warning(manifest)
 
         audio_path = extract_audio(media_path, video_dir / "audio.wav") if probe.get("has_audio") else None
         manifest.metadata["audio_path"] = str(audio_path) if audio_path else None

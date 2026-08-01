@@ -1,6 +1,7 @@
 """Hermes Video evidence preparation package."""
 from .bundle import build_planned_manifest, build_system_b_summary, write_workspace_bundle
 from .captions import parse_captions, segments_to_markdown
+from .invoke import WatchInvocation, parse_watch_text, run_invocation
 from .metadata import fetch_metadata, pick_caption_lang
 from .models import DetailMode, EvidenceStatus, FrameCandidate, VideoEvidenceRequest, VideoEvidenceManifest
 from .planner import cue_frame_segments, cue_frame_timestamps, frame_budget, select_detail_defaults
@@ -17,6 +18,9 @@ __all__ = [
     "write_workspace_bundle",
     "parse_captions",
     "segments_to_markdown",
+    "WatchInvocation",
+    "parse_watch_text",
+    "run_invocation",
     "fetch_metadata",
     "pick_caption_lang",
     "frame_budget",

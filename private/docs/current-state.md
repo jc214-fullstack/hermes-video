@@ -24,20 +24,21 @@ Working:
 - Transcript-cue frame forcing.
 - OCR/contact-sheet hooks.
 - Exact-hash frame dedup counts.
-- Stable System B JSON/manifest contract.
+- Stable System B JSON/manifest contract, now with a top-level `source` block (title/uploader/channel/duration_seconds) when metadata is available.
+- Native `/watch` text parsing via the `invoke` subcommand: extracts source/prompt, infers detail mode, parses `from X to Y` ranges and `at X` timestamps, and runs the same engine into a workspace.
 - Offline deterministic canaries.
 - Live YouTube canary baseline using `https://www.youtube.com/watch?v=Ptd860T66WY`: `canary --live-url` passed, quick watch produced caption-only partial evidence, balanced watch produced full evidence with downloaded media/captions/frames, and deep watch produced full evidence with captions/frames/OCR/contact sheet.
 
-Observed live-test follow-ups:
+Live-test follow-ups now resolved:
 
-- `duration_unknown: frame budget is provisional` still appears even when ffprobe later records `duration_seconds`; normalize duration warnings after media metadata is known.
-- Deep/balanced frame output is functional, but live testing should add summary-level title/channel/duration fields so operators can identify the watched source without opening raw metadata.
-- Transcript extraction works, but YouTube auto-caption duplicate segment cleanup should be improved for cleaner reading.
+- `duration_unknown: frame budget is provisional` is cleared once yt-dlp/ffprobe reports a real `duration_seconds`.
+- Summary JSON now exposes source title/channel/uploader/duration_seconds so operators can identify the watched source without opening raw metadata.
+- YouTube rolling auto-caption lines now collapse into readable transcript segments while preserving timestamps.
 
 Still needed for full Hermes-native use:
 
 - Install/publish surface for the skill across profiles.
-- Hermes slash command or plugin wrapper for `/watch`-style use.
+- Hermes gateway/plugin that routes a real operator `/watch` message into `invoke` (the deterministic parser layer now exists; the Hermes slash command surface does not).
 - System B adapter that calls Hermes Video automatically.
 - Live URL canary using a supplied public URL.
 - Perceptual dedup upgrade.

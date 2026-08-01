@@ -38,6 +38,23 @@ Create a small temporary clip and VTT file, then run a focused/deep watch comman
 - `user_timestamp` and `focused_range` reasons appear when requested
 - no transcript + no frames is never `full`
 
+## native /watch invocation smoke
+
+Prove the text-parsing path runs the same engine:
+
+```bash
+PYTHONPATH=src python -m hermes_video.cli invoke \
+  "/watch ./clip.mp4 from 0:01 to 0:04 what repo and command are shown on screen" \
+  --workspace /tmp/hermes-video-invoke --json
+```
+
+Verify:
+
+- `invocation.detail` is `focused` (range present); `start`/`end` parsed.
+- `invocation.source` is the URL/path; `prompt` has command filler stripped.
+- workspace has `manifest.json` and `analysis-ready.md`.
+- with a real local clip, `summary.warnings` no longer carries `duration_unknown` (ffprobe cleared it).
+
 ## live URL canary
 
 When Mike supplies a test URL:

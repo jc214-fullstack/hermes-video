@@ -10,7 +10,23 @@ Run from repo root:
 PYTHONPATH=src python -m pytest -q
 ```
 
-This proves the planner, CLI contracts, frame reasons, System B JSON shape, skill packaging, public/private repo layout, and deterministic canary logic.
+This proves the planner, CLI contracts, frame reasons, System B JSON shape, skill packaging, public/private repo layout, and deterministic canary logic. It also covers the native `/watch` text parser (`tests/test_invoke.py`), the summary `source` metadata block and duration-warning cleanup (`tests/test_summary_and_duration.py`), and rolling auto-caption cleanup (`tests/test_captions.py`).
+
+## Native `/watch` invocation
+
+`invoke` turns natural text into a deterministic request and runs the same engine:
+
+```bash
+PYTHONPATH=src python -m hermes_video.cli invoke \
+  "/watch https://youtu.be/ID from 0:30 to 0:45 what repo and command are shown" \
+  --workspace /tmp/hermes-video-invoke --json
+```
+
+Expected: JSON with an `invocation` block (parsed `source`, `prompt`, `detail`,
+`start`/`end`, `timestamps`), a `summary` block, and a workspace containing
+`manifest.json` and `analysis-ready.md`. A bare URL/path with no detail hint
+defaults to `balanced`; a timestamp/range routes to `focused`; on-screen/repo/code
+wording routes to `deep`.
 
 ## Dependency doctor
 

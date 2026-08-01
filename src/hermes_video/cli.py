@@ -82,6 +82,22 @@ def _run_watch(args: argparse.Namespace) -> int:
     return 0
 
 
+def _run_invoke(args: argparse.Namespace) -> int:
+    import tempfile
+
+    from .invoke import run_invocation
+
+    workspace = args.workspace or tempfile.mkdtemp(prefix="hermes-video-watch-")
+    result = run_invocation(
+        args.text,
+        workspace,
+        default_detail=normalize_detail_mode(args.detail) if args.detail else None,
+        duration_seconds=args.duration or None,
+    )
+    print(json.dumps(result, indent=2))
+    return 0
+
+
 def _run_doctor(args: argparse.Namespace) -> int:
     report = dependency_report()
     print(json.dumps(report, indent=2))
@@ -108,7 +124,7 @@ def main(argv: list[str] | None = None) -> int:
     import sys
 
     argv = sys.argv[1:] if argv is None else list(argv)
-    if argv and argv[0] not in {"watch", "doctor", "canary", "help", "-h", "--help"}:
+    if argv and argv[0] not in {"watch", "invoke", "doctor", "canary", "help", "-h", "--help"}:
         return _legacy_main(argv)
 
     parser = argparse.ArgumentParser(description="Hermes-native video evidence engine.")
@@ -117,6 +133,14 @@ def main(argv: list[str] | None = None) -> int:
     watch = subparsers.add_parser("watch", help="Prepare an evidence bundle for a video URL or file")
     _add_watch_args(watch)
     watch.set_defaults(func=_run_watch)
+
+    invoke = subparsers.add_parser("invoke", help="Parse natural `/watch ...` text and run the evidence engine")
+    invoke.add_argument("text", help="Natural request, e.g. '/watch https://youtu.be/ID what is this about?'")
+    invoke.add_argument("--workspace", help="Output workspace; a temp dir is created when omitted")
+    invoke.add_argument("--detail", choices=_DETAIL_CHOICES, help="Override the detail mode inferred from the text")
+    invoke.add_argument("--duration", type=float, default=0.0, help="Known duration for planning")
+    invoke.add_argument("--json", action="store_true", help="Emit JSON output (default)")
+    invoke.set_defaults(func=_run_invoke)
 
     doctor = subparsers.add_parser("doctor", help="Check video tooling dependencies")
     doctor.add_argument("--json", action="store_true", help="Emit JSON output")
