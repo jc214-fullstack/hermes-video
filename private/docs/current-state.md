@@ -26,6 +26,13 @@ Working:
 - Exact-hash frame dedup counts.
 - Stable System B JSON/manifest contract.
 - Offline deterministic canaries.
+- Live YouTube canary baseline using `https://www.youtube.com/watch?v=Ptd860T66WY`: `canary --live-url` passed, quick watch produced caption-only partial evidence, balanced watch produced full evidence with downloaded media/captions/frames, and deep watch produced full evidence with captions/frames/OCR/contact sheet.
+
+Observed live-test follow-ups:
+
+- `duration_unknown: frame budget is provisional` still appears even when ffprobe later records `duration_seconds`; normalize duration warnings after media metadata is known.
+- Deep/balanced frame output is functional, but live testing should add summary-level title/channel/duration fields so operators can identify the watched source without opening raw metadata.
+- Transcript extraction works, but YouTube auto-caption duplicate segment cleanup should be improved for cleaner reading.
 
 Still needed for full Hermes-native use:
 

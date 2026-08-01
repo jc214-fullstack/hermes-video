@@ -38,7 +38,9 @@ Add a System B adapter that shells out to `python -m hermes_video.cli watch ... 
 
 ### 4. live URL canary
 
-Run `canary --live-url` with a public URL Mike supplies. Save the JSON/Markdown report privately first, then promote only sanitized proof if useful.
+Run `canary --live-url` with public URLs Mike supplies. Save the JSON/Markdown report privately first, then promote only sanitized proof if useful.
+
+First baseline completed with `https://www.youtube.com/watch?v=Ptd860T66WY`: live canary passed, balanced/deep watch runs reached `evidence_status=full`, captions/media/frames were extracted, and deep mode produced OCR/contact sheet. Follow-up improvements from that run: remove stale duration warnings after ffprobe succeeds, add source title/channel/duration to summary JSON, and clean repeated YouTube auto-caption transcript lines.
 
 ### 5. perceptual dedup
 
