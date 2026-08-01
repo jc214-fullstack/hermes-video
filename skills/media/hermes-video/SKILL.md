@@ -33,7 +33,7 @@ Use this skill for:
 
 ## Plain Text Watch Requests
 
-If the user says “watch this video,” “can you watch this,” “analyze this video,” “summarize this reel,” or similar plain text and includes a usable URL, direct media URL, or local file path, Do not merely explain that Hermes Video exists; run Hermes Video immediately from the repo root, create a timestamped workspace outside git-tracked docs, read `manifest.json` and `analysis-ready.md` before answering, and answer only from the evidence that was actually produced.
+If the user says “watch this video,” “can you watch this,” “analyze this video,” “summarize this reel,” or similar plain text and includes a usable URL, direct media URL, or local file path. Do not merely explain that Hermes Video exists; run Hermes Video immediately from the repo root, create a timestamped workspace outside git-tracked docs, read `manifest.json` and `analysis-ready.md` before answering, and answer only from the evidence that was actually produced.
 
 Ask for the URL or file path only when the request contains no usable source. If the user provides a platform URL that cannot be inspected or downloaded, report the blocked/partial status from Hermes Video instead of fabricating a watch.
 
