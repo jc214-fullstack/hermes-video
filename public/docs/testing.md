@@ -19,7 +19,7 @@ This proves the planner, CLI contracts, frame reasons, System B JSON shape, skil
 ```bash
 PYTHONPATH=src python -m hermes_video.cli invoke \
   "/watch https://youtu.be/ID from 0:30 to 0:45 what repo and command are shown" \
-  --workspace /tmp/hermes-video-invoke --json
+  --workspace out/hermes-video-invoke --json
 ```
 
 Expected: JSON with an `invocation` block (parsed `source`, `prompt`, `detail`,
@@ -39,7 +39,7 @@ Use this before rich video work. It should report local availability for `yt-dlp
 ## Offline canaries
 
 ```bash
-PYTHONPATH=src python -m hermes_video.cli canary --report /tmp/hermes-video-canary
+PYTHONPATH=src python -m hermes_video.cli canary --report out/hermes-video-canary
 ```
 
 Expected healthy shape:
@@ -71,7 +71,7 @@ Expected evidence:
 When Mike supplies a URL:
 
 ```bash
-PYTHONPATH=src python -m hermes_video.cli canary --live-url "<URL>" --report /tmp/hermes-video-live-canary
+PYTHONPATH=src python -m hermes_video.cli canary --live-url "<URL>" --report out/hermes-video-live-canary
 ```
 
 Do not fabricate success. If the source blocks captions/media, preserve `blocked`, `metadata_only`, or `partial_extraction` with warnings.

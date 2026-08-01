@@ -6,6 +6,7 @@ PUBLIC_DOCS = ROOT / "public" / "docs"
 PARITY_DOC = PUBLIC_DOCS / "claude-video-parity.md"
 ROADMAP_DOC = PUBLIC_DOCS / "hermes-video-skill-roadmap.md"
 README = ROOT / "README.md"
+FOUNDATION_DOC = PUBLIC_DOCS / "foundation-handoff.md"
 SAMPLE_DIR = ROOT / "public" / "examples" / "claude-video-parity-sample"
 LIVE_MATRIX = PUBLIC_DOCS / "live-parity-matrix.md"
 
@@ -69,10 +70,25 @@ def test_readme_points_to_devwork_repo_and_parity_docs():
     text = README.read_text()
 
     assert "hermes-video-devwork" in text
+    assert "public/docs/foundation-handoff.md" in text
     assert "public/docs/claude-video-parity.md" in text
     assert "public/docs/live-parity-matrix.md" in text
     assert "public/examples/claude-video-parity-sample/" in text
     assert "public/docs/hermes-video-skill-roadmap.md" in text
+
+
+def test_foundation_handoff_marks_baseline_without_future_integrations():
+    text = FOUNDATION_DOC.read_text()
+    required = [
+        "foundational video-analysis evidence engine",
+        "Claude Video `/watch` evidence-prep workflow",
+        "stable `manifest.json`",
+        "compact `analysis-ready.md`",
+        "does not include",
+        "manual public-release/security audit",
+    ]
+    for phrase in required:
+        assert phrase in text
 
 
 def test_public_sample_output_bundle_is_present_and_sanitized():

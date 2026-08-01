@@ -45,11 +45,10 @@ Default routing for plain text requests:
 - Any timestamp/range request: `--detail focused` with `--timestamps`, `--start`, and/or `--end`.
 - Explicit exhaustive request: `--detail full`.
 
-Minimum command shape:
+Minimum command shape from the repo root:
 
 ```bash
-cd /home/dylan-malik/projects/hermes-video-dev
-PYTHONPATH=src python -m hermes_video.cli watch "<SOURCE>" --detail balanced --workspace "/tmp/hermes-video-watch-<safe-id>" --json
+PYTHONPATH=src python -m hermes_video.cli watch "<SOURCE>" --detail balanced --workspace "out/hermes-video-watch-<safe-id>" --json
 ```
 
 Native `/watch` shortcut: when the user's message reads like `/watch <url> <question>`
@@ -58,7 +57,7 @@ parses the source, prompt, detail mode, and any range/timestamps for you and run
 the same engine:
 
 ```bash
-PYTHONPATH=src python -m hermes_video.cli invoke "/watch <SOURCE> <question>" --workspace "/tmp/hermes-video-watch-<safe-id>" --json
+PYTHONPATH=src python -m hermes_video.cli invoke "/watch <SOURCE> <question>" --workspace "out/hermes-video-watch-<safe-id>" --json
 ```
 
 Done means Hermes Video actually ran, artifacts exist, warnings/status were inspected, read `analysis-ready.md` before answering, and the final reply names whether the run was `full`, `partial_extraction`, `metadata_only`, or `blocked`.
@@ -75,8 +74,6 @@ Do not use this skill for:
 Run from the repo root when developing locally:
 
 ```bash
-cd /home/dylan-malik/projects/hermes-video-dev
-
 # Preflight dependencies and capability status
 PYTHONPATH=src python -m hermes_video.cli doctor --json
 

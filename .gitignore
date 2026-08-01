@@ -1,9 +1,40 @@
+# Python caches/build outputs
 __pycache__/
 *.py[cod]
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
 .venv/
 dist/
 build/
 *.egg-info/
+
+# Hermes/coding-terminal runtime state
 .hermes/
 prompts/
+
+# Generated Hermes Video workspaces and reports
+out/
+runs/
+reports/
+canary/
+workspace/
+workspaces/
+*-workspace/
+
+# Generated media artifacts; keep shareable samples text-only unless explicitly reviewed
+*.mp4
+*.mov
+*.mkv
+*.webm
+*.avi
+*.mp3
+*.wav
+*.m4a
+*.flac
+*.jpg
+*.jpeg
+*.png
+*.webp

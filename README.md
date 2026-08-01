@@ -131,6 +131,7 @@ never committed.
 ## Documentation
 
 - `public/docs/README.md` — public docs index.
+- `public/docs/foundation-handoff.md` — concise status/handoff for the devwork baseline.
 - `public/docs/claude-video-parity.md` — how the Claude Video `/watch` pattern maps to this implementation.
 - `public/docs/live-parity-matrix.md` — live/source proof matrix for captioned YouTube, Shorts-style URLs, no-caption STT, blocked URLs, and local OCR samples.
 - `public/examples/claude-video-parity-sample/` — sanitized sample output bundle without raw media.

@@ -4,11 +4,12 @@ These docs are safe to publish with the `hermes-video-devwork` repo and are writ
 
 Read order:
 
-1. `claude-video-parity.md` — maps the Claude Video `/watch` pattern to Hermes Video.
-2. `live-parity-matrix.md` — records the current live/source proof matrix.
-3. `testing.md` — verification commands and expected proof.
-4. `system-b-integration.md` — stable System B ingest contract.
-5. `hermes-video-skill-roadmap.md` — remaining product/skill work beyond Claude Video parity.
+1. `foundation-handoff.md` — concise status/handoff for the devwork baseline.
+2. `claude-video-parity.md` — maps the Claude Video `/watch` pattern to Hermes Video.
+3. `live-parity-matrix.md` — records the current live/source proof matrix.
+4. `testing.md` — verification commands and expected proof.
+5. `system-b-integration.md` — stable System B ingest contract.
+6. `hermes-video-skill-roadmap.md` — remaining product/skill work beyond Claude Video parity.
 
 Sample output lives under `public/examples/claude-video-parity-sample/`.
 
