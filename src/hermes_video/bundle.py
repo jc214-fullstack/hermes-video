@@ -7,7 +7,16 @@ from pathlib import Path
 from .captions import load_captions, segments_to_markdown
 from .contact_sheet import build_contact_sheet
 from .downloader import download_captions, download_media
-from .media_extract import deduplicate_frame_candidates, extract_audio, extract_frames_at_timestamps, extract_mode_frames, ffprobe_media
+from .media_extract import (
+    PERCEPTUAL_HAMMING_THRESHOLD,
+    active_dedup_backend,
+    deduplicate_frame_candidates,
+    extract_audio,
+    extract_frames_at_timestamps,
+    extract_mode_frames,
+    ffprobe_media,
+    perceptual_dedup_available,
+)
 from .metadata import fetch_metadata, pick_caption_lang
 from .models import VideoEvidenceManifest, VideoEvidenceRequest
 from .ocr import ocr_available, ocr_frames
@@ -55,6 +64,7 @@ def build_system_b_summary(workspace: str | Path, paths: dict[str, str]) -> dict
             "paths": [f["path"] for f in frames if f.get("path")],
             "selected": meta.get("frames_selected"),
             "dropped_duplicate": meta.get("frames_dropped_duplicate"),
+            "dedup_backend": meta.get("frames_dedup_backend"),
         },
         "ocr": {"status": manifest["ocr"], "path": meta.get("ocr_path")},
         "contact_sheet": {"status": manifest.get("contact_sheet"), "path": meta.get("contact_sheet_path")},
@@ -255,6 +265,10 @@ def write_workspace_bundle(request: VideoEvidenceRequest, workspace: str | Path,
         manifest.metadata["frames_candidate_count"] = candidate_count
         manifest.metadata["frames_selected"] = len(all_frames)
         manifest.metadata["frames_dropped_duplicate"] = dropped_duplicates
+        manifest.metadata["frames_dedup_backend"] = active_dedup_backend()
+        manifest.metadata["frames_dedup_threshold"] = (
+            PERCEPTUAL_HAMMING_THRESHOLD if perceptual_dedup_available() else None
+        )
         manifest.metadata["cue_frames"] = len(cue_frames)
         manifest.metadata["user_timestamp_frames"] = len(user_frames)
         manifest.metadata["cues"] = cues

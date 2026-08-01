@@ -6,7 +6,11 @@ from pathlib import Path
 import pytest
 
 from hermes_video import VideoEvidenceRequest, write_workspace_bundle
-from hermes_video.media_extract import deduplicate_frame_candidates
+from hermes_video.media_extract import (
+    active_dedup_backend,
+    deduplicate_frame_candidates,
+    perceptual_dedup_available,
+)
 from hermes_video.models import FrameCandidate
 
 
@@ -102,3 +106,56 @@ def test_deduplicate_frame_candidates_drops_exact_duplicate_files(tmp_path):
 
     assert [Path(frame.path).name for frame in kept] == ["one.jpg", "three.jpg"]
     assert dropped == 1
+
+
+def _write_jpeg(path, image, quality):
+    image.save(path, format="JPEG", quality=quality)
+
+
+def test_perceptual_dedup_drops_near_duplicate_reencoded_frames(tmp_path):
+    Image = pytest.importorskip("PIL.Image")
+    assert perceptual_dedup_available()
+    assert active_dedup_backend() == "perceptual"
+
+    base = Image.new("RGB", (64, 64))
+    base.putdata([((x * 4) % 256, (y * 4) % 256, 0) for y in range(64) for x in range(64)])
+    other = Image.new("RGB", (64, 64), color=(10, 200, 30))
+
+    high = tmp_path / "high.jpg"
+    low = tmp_path / "low.jpg"
+    different = tmp_path / "different.jpg"
+    _write_jpeg(high, base, 95)
+    _write_jpeg(low, base, 20)
+    _write_jpeg(different, other, 95)
+
+    # Re-encoding at a different quality changes bytes but not the visual frame.
+    assert high.read_bytes() != low.read_bytes()
+
+    kept, dropped = deduplicate_frame_candidates([
+        FrameCandidate(index=1, timestamp_seconds=0.0, reason="uniform", path=str(high)),
+        FrameCandidate(index=2, timestamp_seconds=1.0, reason="uniform", path=str(low)),
+        FrameCandidate(index=3, timestamp_seconds=2.0, reason="scene", path=str(different)),
+    ])
+
+    assert [Path(frame.path).name for frame in kept] == ["high.jpg", "different.jpg"]
+    assert dropped == 1
+
+
+def test_perceptual_dedup_preserves_forced_frames(tmp_path):
+    Image = pytest.importorskip("PIL.Image")
+
+    frame = Image.new("RGB", (64, 64), color=(120, 120, 120))
+    a = tmp_path / "cue_a.jpg"
+    b = tmp_path / "cue_b.jpg"
+    _write_jpeg(a, frame, 95)
+    _write_jpeg(b, frame, 30)
+
+    # Two explicitly requested moments that happen to look near-identical must
+    # both survive; forced frames are exempt from perceptual suppression.
+    kept, dropped = deduplicate_frame_candidates([
+        FrameCandidate(index=1, timestamp_seconds=1.0, reason="user_timestamp", path=str(a)),
+        FrameCandidate(index=2, timestamp_seconds=2.5, reason="transcript_cue", path=str(b), cue_text="look here"),
+    ])
+
+    assert [Path(f.path).name for f in kept] == ["cue_a.jpg", "cue_b.jpg"]
+    assert dropped == 0

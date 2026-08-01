@@ -12,6 +12,41 @@ from .planner import frame_budget, normalize_detail_mode, select_detail_defaults
 _FRAME_CAP = 12  # v1 local extraction cap; planner still records the full budget.
 _PTS_RE = re.compile(r"pts_time:([0-9.]+)")
 
+PERCEPTUAL_HAMMING_THRESHOLD = 4  # aHash bit-distance below which frames are near-duplicates
+_FORCED_FRAME_REASONS = {"user_timestamp", "transcript_cue"}  # explicit intent; never perceptually dropped
+
+try:  # optional: Pillow enables perceptual near-duplicate dedup
+    from PIL import Image  # type: ignore
+    _PIL_AVAILABLE = True
+except Exception:  # pragma: no cover - exercised only without Pillow installed
+    Image = None  # type: ignore
+    _PIL_AVAILABLE = False
+
+
+def perceptual_dedup_available() -> bool:
+    return _PIL_AVAILABLE
+
+
+def active_dedup_backend() -> str:
+    return "perceptual" if _PIL_AVAILABLE else "exact"
+
+
+def _average_hash(path: Path) -> int | None:
+    """64-bit deterministic average hash, or None when Pillow can't read the file."""
+    if not _PIL_AVAILABLE:
+        return None
+    try:
+        with Image.open(path) as img:
+            pixels = img.convert("L").resize((8, 8)).tobytes()
+    except Exception:
+        return None
+    avg = sum(pixels) / len(pixels)
+    bits = 0
+    for i, px in enumerate(pixels):
+        if px >= avg:
+            bits |= 1 << i
+    return bits
+
 
 def _run_json(argv: list[str]) -> dict:
     proc = subprocess.run(argv, check=True, capture_output=True, text=True)
@@ -222,15 +257,26 @@ def extract_frames_at_timestamps(
     return out
 
 
-def deduplicate_frame_candidates(candidates: list[FrameCandidate]) -> tuple[list[FrameCandidate], int]:
-    """Drop exact duplicate frame files while preserving order.
+def deduplicate_frame_candidates(
+    candidates: list[FrameCandidate],
+    *,
+    threshold: int = PERCEPTUAL_HAMMING_THRESHOLD,
+) -> tuple[list[FrameCandidate], int]:
+    """Drop duplicate frame files while preserving order.
 
-    v1 intentionally uses exact byte hashing. It is deterministic, cheap, and
-    catches repeated static frames without introducing image-processing deps.
-    Perceptual near-duplicate detection can replace this later behind the same
-    contract.
+    With Pillow present this is a perceptual pass: an 8x8 average hash catches
+    near-duplicate frames whose bytes differ (re-encoded static screens) but
+    whose picture is identical, within ``threshold`` Hamming bits. Without
+    Pillow it degrades to exact sha256 byte hashing. Both are deterministic.
+
+    Input order matters: forced frames (user timestamps, transcript cues) lead
+    the list, so a kept frame always wins over a later sampled duplicate.
+    Forced frames are explicit intent, so they are exempt from perceptual
+    suppression (only an exact byte duplicate ever drops one); perceptual
+    near-duplicate dropping applies to sampled frames.
     """
-    seen: set[str] = set()
+    exact_seen: set[str] = set()
+    kept_hashes: list[int] = []  # ponytail: O(n*kept) scan; frames per bundle <= ~30
     kept: list[FrameCandidate] = []
     dropped = 0
     for candidate in candidates:
@@ -242,9 +288,16 @@ def deduplicate_frame_candidates(candidates: list[FrameCandidate]) -> tuple[list
             kept.append(candidate)
             continue
         digest = hashlib.sha256(path.read_bytes()).hexdigest()
-        if digest in seen:
+        if digest in exact_seen:
             dropped += 1
             continue
-        seen.add(digest)
+        phash = _average_hash(path)
+        forced = candidate.reason in _FORCED_FRAME_REASONS
+        if not forced and phash is not None and any((phash ^ seen).bit_count() <= threshold for seen in kept_hashes):
+            dropped += 1
+            continue
+        exact_seen.add(digest)
+        if phash is not None:
+            kept_hashes.append(phash)
         kept.append(candidate)
     return kept, dropped
