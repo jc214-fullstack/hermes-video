@@ -1,5 +1,7 @@
 # Hermes Video
 
+GitHub repo: `jc214-fullstack/hermes-video-devwork`
+
 Hermes-native video evidence preparation for System B media analysis.
 
 Hermes Video turns a video source into an agent-readable evidence bundle: metadata, transcript status, timestamped frames, OCR hooks, cue-frame hints, warnings, and a manifest that downstream Hermes skills can analyze honestly.
@@ -79,3 +81,8 @@ See `docs/system-b-integration.md` for the full JSON/manifest contract.
 This repo packages a Hermes skill at `skills/media/hermes-video/SKILL.md` with a progressively disclosed System B reference at `skills/media/hermes-video/references/system-b-contract.md`.
 
 The skill is the operator surface for deciding when to run Hermes Video, which detail mode to choose, how to preserve evidence-status honesty, and how System B should ingest the stable `watch --json` summary/manifest fields.
+
+## Documentation
+
+- `docs/claude-video-parity.md` maps the Claude Video `/watch` pattern to the Hermes-native implementation.
+- `docs/hermes-video-skill-roadmap.md` tracks the remaining Hermes skill/system work: install/publish surface, Hermes slash command, System B adapter, live URL canary, perceptual dedup, GBrain/ObiVault writeback, and OwnLight88 editing handoff.

@@ -100,6 +100,8 @@ Frame `reason` values to preserve in manifests/final references: `scene`, `keyfr
 
 See `references/system-b-contract.md` for the exact System B ingest shape.
 
+When working in the `hermes-video-devwork` repo, also read `docs/claude-video-parity.md` before parity/design changes and `docs/hermes-video-skill-roadmap.md` before skill/system integration changes.
+
 ## Operating Workflow
 
 1. **Preflight.** Run `python -m hermes_video.cli doctor --json`. Done when required tools for the intended detail mode are present or missing capabilities are explicitly reflected in expected warnings.
