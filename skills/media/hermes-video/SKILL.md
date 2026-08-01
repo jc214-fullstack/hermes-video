@@ -15,11 +15,11 @@ metadata:
 
 ## Overview
 
-Hermes Video is the Hermes-native video evidence layer. It turns a URL, direct media URL, or local video file into a reusable evidence bundle: metadata, transcript/captions, STT status, timestamped frames, OCR text, contact sheet, warnings, and a stable `manifest.json` for downstream Hermes/System B analysis.
+Hermes Video is the Hermes-native Claude Video equivalent for evidence prep. It turns a URL, direct media URL, or local video file into a reusable evidence bundle: metadata, transcript/captions, STT status, timestamped frames, OCR text, contact sheet, warnings, and a stable `manifest.json`.
 
 Use Hermes Video when the user expects a real video watch. Do not answer from title, thumbnail, platform caption, or URL metadata alone unless the run honestly returns `metadata_only` or `blocked` and you say that visual/transcript evidence was unavailable.
 
-The engine is intentionally evidence-only. It prepares artifacts; Hermes/System B writes interpretation, Discord delivery, artifact verification, GBrain writeback, and final prose.
+The current scope is Claude Video parity: accept `/watch`-style text, run captions first, download only when visual/STT/OCR evidence is needed, preserve timestamps/ranges, deduplicate frames, and produce artifacts Hermes can inspect. System B/media-analysis, Discord delivery, GBrain writeback, and OwnLight88 editing are downstream consumers, not current parity requirements.
 
 ## When to Use
 
