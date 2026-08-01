@@ -20,7 +20,8 @@ Hermes Video owns transcript + visual evidence preparation. System B owns source
 - `frames` — `extracted`/`missing`/`skipped`; `frame_candidates[]` carry `timestamp_seconds`, `reason` (`uniform`/`transcript_cue`), and `cue_text` when forced by a transcript cue.
 - `ocr` — `extracted`/`empty`/`unavailable`; text lands in `video/ocr.md`.
 - `contact_sheet` — `imagemagick`/`pil`/`unavailable`; image at `video/contact-sheet.jpg`.
-- `media` — `provided`/`missing`.
+- `media` — `provided`/`downloaded`/`skipped`/`blocked`/`missing`.
+- `metadata.frames_candidate_count`, `metadata.frames_selected`, `metadata.frames_dropped_duplicate`, `metadata.cue_frames` — frame selection/dedup accounting.
 - `warnings[]` — honest degradation notes (STT not run, tool missing, provisional budget).
 
 Bundle files: `manifest.json`, `video/metadata.json`, `video/transcript.md`, `video/ocr.md`, `video/contact-sheet.jpg`, `video/frames/*.jpg`, `02-extract.md`, `analysis-ready.md`.

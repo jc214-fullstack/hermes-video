@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import subprocess
 from pathlib import Path
 
@@ -110,3 +111,31 @@ def extract_frames_at_timestamps(
                 )
             )
     return out
+
+
+def deduplicate_frame_candidates(candidates: list[FrameCandidate]) -> tuple[list[FrameCandidate], int]:
+    """Drop exact duplicate frame files while preserving order.
+
+    v1 intentionally uses exact byte hashing. It is deterministic, cheap, and
+    catches repeated static frames without introducing image-processing deps.
+    Perceptual near-duplicate detection can replace this later behind the same
+    contract.
+    """
+    seen: set[str] = set()
+    kept: list[FrameCandidate] = []
+    dropped = 0
+    for candidate in candidates:
+        if not candidate.path:
+            kept.append(candidate)
+            continue
+        path = Path(candidate.path)
+        if not path.exists():
+            kept.append(candidate)
+            continue
+        digest = hashlib.sha256(path.read_bytes()).hexdigest()
+        if digest in seen:
+            dropped += 1
+            continue
+        seen.add(digest)
+        kept.append(candidate)
+    return kept, dropped

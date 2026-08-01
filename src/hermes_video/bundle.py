@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from pathlib import Path
 
 from .captions import load_captions, segments_to_markdown
 from .contact_sheet import build_contact_sheet
-from .media_extract import extract_audio, extract_frames, extract_frames_at_timestamps, ffprobe_media
+from .downloader import download_captions, download_media
+from .media_extract import deduplicate_frame_candidates, extract_audio, extract_frames, extract_frames_at_timestamps, ffprobe_media
+from .metadata import fetch_metadata, pick_caption_lang
 from .models import VideoEvidenceManifest, VideoEvidenceRequest
 from .ocr import ocr_available, ocr_frames
 from .planner import cue_frame_segments, frame_budget, normalize_detail_mode, select_detail_defaults
@@ -119,6 +122,55 @@ def write_workspace_bundle(request: VideoEvidenceRequest, workspace: str | Path,
     ocr_hits: list[dict] = []
     transcript_segments: list[dict] = []
     media_path = Path(request.media_path) if request.media_path else None
+    source_as_path = Path(request.source_url)
+    source_is_local_file = source_as_path.exists()
+    if media_path is None and source_is_local_file:
+        media_path = source_as_path
+        manifest.media = "provided"
+
+    url_metadata: dict = {}
+    is_remote_source = "://" in request.source_url and not source_is_local_file
+    if is_remote_source:
+        url_metadata = fetch_metadata(request.source_url)
+        manifest.metadata["url_metadata"] = url_metadata
+        if url_metadata.get("blocked"):
+            manifest.evidence_status = "blocked"
+            manifest.warnings.append(f"metadata_blocked: {url_metadata.get('error', 'yt-dlp metadata failed')}")
+        else:
+            if url_metadata.get("duration_seconds") and duration_seconds is None:
+                manifest.metadata["duration_seconds"] = url_metadata.get("duration_seconds")
+            manifest.description = "available" if url_metadata.get("description") else manifest.description
+            caption_lang = pick_caption_lang(url_metadata)
+            if caption_lang and not request.captions_path:
+                caption_path = download_captions(request.source_url, video_dir / "captions", lang=caption_lang)
+                if caption_path:
+                    request = replace(request, captions_path=str(caption_path))
+                    manifest.caption = "downloaded"
+                    manifest.metadata["captions_path"] = str(caption_path)
+                else:
+                    manifest.caption = "unavailable"
+                    manifest.warnings.append("captions_download_failed: yt-dlp could not recover captions")
+
+            needs_visual = manifest.detail != "quick"
+            if media_path is None and needs_visual and not url_metadata.get("blocked"):
+                downloaded = download_media(request.source_url, video_dir / "downloads")
+                if downloaded:
+                    media_path = downloaded
+                    manifest.media = "downloaded"
+                    manifest.metadata["downloaded_media_path"] = str(downloaded)
+                else:
+                    manifest.media = "blocked"
+                    manifest.warnings.append("media_download_blocked: yt-dlp could not recover video media")
+            elif media_path is None and not needs_visual:
+                manifest.media = "skipped"
+
+    if not media_path and request.captions_path:
+        transcript_segments, source, status = _resolve_transcript(request, None, manifest)
+        manifest.transcript = status
+        manifest.transcript_source = source
+        if transcript_segments:
+            manifest.evidence_status = "partial_extraction"
+
     if media_path and media_path.exists():
         probe = ffprobe_media(media_path)
         actual_duration = float(probe.get("duration_seconds") or duration_seconds or 0)
@@ -136,10 +188,15 @@ def write_workspace_bundle(request: VideoEvidenceRequest, workspace: str | Path,
         cues = cue_frame_segments(transcript_segments)
         cue_frames = extract_frames_at_timestamps(media_path, frames_dir, cues) if cues else []
         all_frames = frames + cue_frames
+        candidate_count = len(all_frames)
+        all_frames, dropped_duplicates = deduplicate_frame_candidates(all_frames)
         manifest.frame_candidates = all_frames
         manifest.frames = "extracted" if all_frames else "missing"
-        manifest.media = "provided"
+        if manifest.media != "downloaded":
+            manifest.media = "provided"
+        manifest.metadata["frames_candidate_count"] = candidate_count
         manifest.metadata["frames_selected"] = len(all_frames)
+        manifest.metadata["frames_dropped_duplicate"] = dropped_duplicates
         manifest.metadata["cue_frames"] = len(cue_frames)
         manifest.metadata["cues"] = cues
 
