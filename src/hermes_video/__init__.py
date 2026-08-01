@@ -1,5 +1,5 @@
 """Hermes Video evidence preparation package."""
-from .bundle import build_planned_manifest, write_workspace_bundle
+from .bundle import build_planned_manifest, build_system_b_summary, write_workspace_bundle
 from .captions import parse_captions, segments_to_markdown
 from .metadata import fetch_metadata, pick_caption_lang
 from .models import DetailMode, EvidenceStatus, FrameCandidate, VideoEvidenceRequest, VideoEvidenceManifest
@@ -13,6 +13,7 @@ __all__ = [
     "VideoEvidenceRequest",
     "VideoEvidenceManifest",
     "build_planned_manifest",
+    "build_system_b_summary",
     "write_workspace_bundle",
     "parse_captions",
     "segments_to_markdown",

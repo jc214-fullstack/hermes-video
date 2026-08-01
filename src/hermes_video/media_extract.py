@@ -2,11 +2,15 @@ from __future__ import annotations
 
 import json
 import hashlib
+import re
 import subprocess
 from pathlib import Path
 
 from .models import FrameCandidate
-from .planner import frame_budget
+from .planner import frame_budget, normalize_detail_mode, select_detail_defaults
+
+_FRAME_CAP = 12  # v1 local extraction cap; planner still records the full budget.
+_PTS_RE = re.compile(r"pts_time:([0-9.]+)")
 
 
 def _run_json(argv: list[str]) -> dict:
@@ -55,26 +59,131 @@ def extract_audio(media_path: str | Path, output_path: str | Path) -> Path | Non
     return output if proc.returncode == 0 and output.exists() else None
 
 
-def extract_frames(media_path: str | Path, frames_dir: str | Path, *, duration_seconds: float, detail: str) -> list[FrameCandidate]:
+def _resolve_budget(duration_seconds: float, detail: str, *, focused: bool) -> int:
+    """Return the capped local frame count, or 0 when the mode wants no frames."""
+    raw = frame_budget(duration_seconds or 0, detail, focused=focused)
+    if raw == 0:
+        return 0
+    cap = _FRAME_CAP if raw is None else min(int(raw), _FRAME_CAP)
+    return max(1, cap)
+
+
+def extract_uniform_frames(
+    media_path: str | Path,
+    frames_dir: str | Path,
+    *,
+    duration_seconds: float,
+    budget: int,
+    start: float | None = None,
+    end: float | None = None,
+    reason: str = "uniform",
+) -> list[FrameCandidate]:
+    """Deterministic time-uniform sampling, optionally constrained to a window."""
     frames_root = Path(frames_dir)
     frames_root.mkdir(parents=True, exist_ok=True)
-    budget = frame_budget(duration_seconds or 0, detail) or 0
-    budget = max(1, min(int(budget), 12))  # v1 local extraction cap; planner still records full budget.
-    fps = budget / duration_seconds if duration_seconds else 1
-    fps = max(0.2, min(fps, 2.0))
-    pattern = frames_root / "frame-%04d.jpg"
-    subprocess.run(
-        ["ffmpeg", "-y", "-i", str(media_path), "-vf", f"fps={fps}", "-q:v", "2", str(pattern)],
-        check=True,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-    )
-    paths = sorted(frames_root.glob("frame-*.jpg"))[:budget]
-    interval = duration_seconds / max(len(paths), 1) if duration_seconds else 0
+    window_start = float(start) if start is not None else 0.0
+    window_end = float(end) if end is not None else float(duration_seconds or 0)
+    span = window_end - window_start
+    if span <= 0:
+        span = float(duration_seconds or 0) or 1.0
+    fps = budget / span if span else 1
+    fps = max(0.2, min(fps, 5.0))
+    pattern = frames_root / f"{reason}-%04d.jpg"
+    argv = ["ffmpeg", "-y"]
+    if start is not None:
+        argv += ["-ss", str(window_start)]
+    argv += ["-i", str(media_path)]
+    if end is not None:
+        argv += ["-t", str(max(window_end - window_start, 0.001))]
+    argv += ["-vf", f"fps={fps}", "-q:v", "2", str(pattern)]
+    subprocess.run(argv, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    paths = sorted(frames_root.glob(f"{reason}-*.jpg"))[:budget]
+    interval = span / max(len(paths), 1)
     return [
-        FrameCandidate(index=i + 1, timestamp_seconds=round(i * interval, 3), reason="uniform", path=str(path))
+        FrameCandidate(index=i + 1, timestamp_seconds=round(window_start + i * interval, 3), reason=reason, path=str(path))
         for i, path in enumerate(paths)
     ]
+
+
+def _extract_selected_frames(
+    media_path: str | Path,
+    frames_dir: str | Path,
+    *,
+    select_expr: str,
+    prefix: str,
+    reason: str,
+    budget: int,
+) -> list[FrameCandidate]:
+    """Run an ffmpeg ``select`` filter with showinfo, recovering real timestamps."""
+    frames_root = Path(frames_dir)
+    frames_root.mkdir(parents=True, exist_ok=True)
+    pattern = frames_root / f"{prefix}-%04d.jpg"
+    proc = subprocess.run(
+        ["ffmpeg", "-y", "-i", str(media_path), "-vf", f"{select_expr},showinfo",
+         "-vsync", "vfr", "-q:v", "2", str(pattern)],
+        capture_output=True, text=True,
+    )
+    times = [float(t) for t in _PTS_RE.findall(proc.stderr or "")]
+    paths = sorted(frames_root.glob(f"{prefix}-*.jpg"))[:budget]
+    out: list[FrameCandidate] = []
+    for i, path in enumerate(paths):
+        ts = times[i] if i < len(times) else 0.0
+        out.append(FrameCandidate(index=i + 1, timestamp_seconds=round(ts, 3), reason=reason, path=str(path)))
+    return out
+
+
+def extract_scene_frames(media_path, frames_dir, *, budget: int, threshold: float = 0.3) -> list[FrameCandidate]:
+    return _extract_selected_frames(
+        media_path, frames_dir,
+        select_expr=f"select='gt(scene,{threshold})'", prefix="scene", reason="scene", budget=budget,
+    )
+
+
+def extract_keyframes(media_path, frames_dir, *, budget: int) -> list[FrameCandidate]:
+    return _extract_selected_frames(
+        media_path, frames_dir,
+        select_expr="select='eq(pict_type,I)'", prefix="keyframe", reason="keyframe", budget=budget,
+    )
+
+
+def extract_mode_frames(
+    media_path: str | Path,
+    frames_dir: str | Path,
+    *,
+    duration_seconds: float,
+    detail: str,
+    start: float | None = None,
+    end: float | None = None,
+) -> list[FrameCandidate]:
+    """Select sampled frames by detail mode with a deterministic uniform fallback.
+
+    Focused ranges (``start``/``end`` or focused mode) win and are sampled
+    densely inside the window as ``focused_range``. Otherwise scene/keyframe
+    extraction is attempted per strategy, falling back to uniform sampling when
+    the detector returns nothing.
+    """
+    detail = normalize_detail_mode(detail)
+    focused = detail == "focused" or start is not None or end is not None
+    budget = _resolve_budget(duration_seconds, detail, focused=focused)
+    if budget == 0:
+        return []
+    if focused:
+        return extract_uniform_frames(
+            media_path, frames_dir, duration_seconds=duration_seconds, budget=budget,
+            start=start, end=end, reason="focused_range",
+        )
+    strategy = str(select_detail_defaults(detail)["strategy"])
+    if strategy == "keyframes":
+        frames = extract_keyframes(media_path, frames_dir, budget=budget)
+        if frames:
+            return frames
+    elif strategy in {"scene_or_keyframe", "scene_keyframe_ocr", "all_scene_changes"}:
+        frames = extract_scene_frames(media_path, frames_dir, budget=budget)
+        if frames:
+            return frames
+    return extract_uniform_frames(
+        media_path, frames_dir, duration_seconds=duration_seconds, budget=budget, reason="uniform",
+    )
 
 
 def extract_frames_at_timestamps(

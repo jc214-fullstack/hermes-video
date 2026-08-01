@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 
-from .bundle import write_workspace_bundle
+from .bundle import build_system_b_summary, write_workspace_bundle
 from .doctor import dependency_report
 from .models import VideoEvidenceManifest, VideoEvidenceRequest
 from .planner import frame_budget, normalize_detail_mode, select_detail_defaults
@@ -35,6 +35,7 @@ def _add_watch_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--media-path", help="Optional already recovered local video path")
     parser.add_argument("--start", type=_parse_timestamp, help="Focused range start")
     parser.add_argument("--end", type=_parse_timestamp, help="Focused range end")
+    parser.add_argument("--timestamps", help="Comma-separated timestamps (s or mm:ss) to force user_timestamp frames")
     parser.add_argument("--captions-file", help="Local VTT/SRT caption file to use as the transcript")
     parser.add_argument("--stt", action="store_true", help="Run local faster-whisper STT on extracted audio when captions are absent")
     parser.add_argument("--json", action="store_true", help="Emit machine-readable JSON; currently the default output shape")
@@ -43,6 +44,10 @@ def _add_watch_args(parser: argparse.ArgumentParser) -> None:
 def _run_watch(args: argparse.Namespace) -> int:
     detail = normalize_detail_mode(args.detail)
     focused = detail == "focused" or args.start is not None or args.end is not None
+    timestamps = (
+        tuple(_parse_timestamp(t.strip()) for t in args.timestamps.split(",") if t.strip())
+        if args.timestamps else ()
+    )
     if args.workspace:
         request = VideoEvidenceRequest(
             source_url=args.source_url,
@@ -52,12 +57,14 @@ def _run_watch(args: argparse.Namespace) -> int:
             detail=detail,
             start=args.start,
             end=args.end,
+            timestamps=timestamps,
             workspace=args.workspace,
             captions_path=args.captions_file,
             enable_stt=args.stt,
         )
         paths = write_workspace_bundle(request, args.workspace, duration_seconds=args.duration or None)
-        print(json.dumps({"workspace": args.workspace, "paths": paths}, indent=2))
+        summary = build_system_b_summary(args.workspace, paths)
+        print(json.dumps({"workspace": args.workspace, "paths": paths, "summary": summary}, indent=2))
         return 0
 
     defaults = select_detail_defaults(detail, focused=focused)
@@ -81,6 +88,16 @@ def _run_doctor(args: argparse.Namespace) -> int:
     return 0 if report["status"] == "ok" else 1
 
 
+def _run_canary(args: argparse.Namespace) -> int:
+    from .canary import run_canaries, write_report
+
+    report = run_canaries(live_url=args.live_url)
+    if args.report:
+        write_report(report, args.report)
+    print(json.dumps(report, indent=2))
+    return 0 if report["status"] == "ok" else 1
+
+
 def _legacy_main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description="Plan a Hermes Video evidence pass.")
     _add_watch_args(parser)
@@ -91,7 +108,7 @@ def main(argv: list[str] | None = None) -> int:
     import sys
 
     argv = sys.argv[1:] if argv is None else list(argv)
-    if argv and argv[0] not in {"watch", "doctor", "help", "-h", "--help"}:
+    if argv and argv[0] not in {"watch", "doctor", "canary", "help", "-h", "--help"}:
         return _legacy_main(argv)
 
     parser = argparse.ArgumentParser(description="Hermes-native video evidence engine.")
@@ -104,6 +121,12 @@ def main(argv: list[str] | None = None) -> int:
     doctor = subparsers.add_parser("doctor", help="Check video tooling dependencies")
     doctor.add_argument("--json", action="store_true", help="Emit JSON output")
     doctor.set_defaults(func=_run_doctor)
+
+    canary = subparsers.add_parser("canary", help="Run deterministic offline evidence canaries")
+    canary.add_argument("--live-url", help="Optional live public URL; without it the live canary reports skipped_live_url")
+    canary.add_argument("--report", help="Optional path base to write <report>.json and <report>.md")
+    canary.add_argument("--json", action="store_true", help="Emit JSON output (default)")
+    canary.set_defaults(func=_run_canary)
 
     args = parser.parse_args(argv)
     if not hasattr(args, "func"):

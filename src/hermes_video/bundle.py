@@ -7,7 +7,7 @@ from pathlib import Path
 from .captions import load_captions, segments_to_markdown
 from .contact_sheet import build_contact_sheet
 from .downloader import download_captions, download_media
-from .media_extract import deduplicate_frame_candidates, extract_audio, extract_frames, extract_frames_at_timestamps, ffprobe_media
+from .media_extract import deduplicate_frame_candidates, extract_audio, extract_frames_at_timestamps, extract_mode_frames, ffprobe_media
 from .metadata import fetch_metadata, pick_caption_lang
 from .models import VideoEvidenceManifest, VideoEvidenceRequest
 from .ocr import ocr_available, ocr_frames
@@ -17,6 +17,33 @@ from .stt import transcribe_audio, whisper_available
 _OCR_MODES = {"deep", "focused", "full"}
 _OCR_PROMPT_HINTS = ("text", "repo", "repository", "github", "website", "site", "url", "install", "command", "code", "screen")
 _RICH_MODES = {"deep", "focused", "full"}
+
+
+def build_system_b_summary(workspace: str | Path, paths: dict[str, str]) -> dict:
+    """Stable machine-readable summary for System B ingest (no internals needed)."""
+    manifest = json.loads(Path(paths["manifest"]).read_text(encoding="utf-8"))
+    meta = manifest.get("metadata", {})
+    frames = manifest.get("frame_candidates", [])
+    return {
+        "workspace": str(workspace),
+        "manifest_path": paths["manifest"],
+        "evidence_status": manifest["evidence_status"],
+        "transcript": {
+            "status": manifest["transcript"],
+            "source": manifest["transcript_source"],
+            "path": paths.get("transcript"),
+        },
+        "frames": {
+            "status": manifest["frames"],
+            "count": len(frames),
+            "paths": [f["path"] for f in frames if f.get("path")],
+            "selected": meta.get("frames_selected"),
+            "dropped_duplicate": meta.get("frames_dropped_duplicate"),
+        },
+        "ocr": {"status": manifest["ocr"], "path": meta.get("ocr_path")},
+        "media": {"status": manifest["media"], "path": meta.get("media_path") or meta.get("downloaded_media_path")},
+        "warnings": manifest["warnings"],
+    }
 
 
 def build_planned_manifest(request: VideoEvidenceRequest, *, duration_seconds: float | None = None) -> VideoEvidenceManifest:
@@ -184,10 +211,21 @@ def write_workspace_bundle(request: VideoEvidenceRequest, workspace: str | Path,
         manifest.transcript = status
         manifest.transcript_source = source
 
-        frames = extract_frames(media_path, frames_dir, duration_seconds=actual_duration, detail=manifest.detail)
+        manifest.metadata["media_path"] = str(media_path)
+        frames = extract_mode_frames(
+            media_path, frames_dir, duration_seconds=actual_duration, detail=manifest.detail,
+            start=request.start, end=request.end,
+        )
+        user_ts_cues = [{"timestamp_seconds": float(t)} for t in (request.timestamps or ())]
+        user_frames = (
+            extract_frames_at_timestamps(media_path, frames_dir, user_ts_cues, reason="user_timestamp")
+            if user_ts_cues else []
+        )
         cues = cue_frame_segments(transcript_segments)
         cue_frames = extract_frames_at_timestamps(media_path, frames_dir, cues) if cues else []
-        all_frames = frames + cue_frames
+        # Forced frames (user timestamps, transcript cues) lead so dedup keeps them
+        # over a byte-identical sampled frame at the same instant.
+        all_frames = user_frames + cue_frames + frames
         candidate_count = len(all_frames)
         all_frames, dropped_duplicates = deduplicate_frame_candidates(all_frames)
         manifest.frame_candidates = all_frames
@@ -198,7 +236,13 @@ def write_workspace_bundle(request: VideoEvidenceRequest, workspace: str | Path,
         manifest.metadata["frames_selected"] = len(all_frames)
         manifest.metadata["frames_dropped_duplicate"] = dropped_duplicates
         manifest.metadata["cue_frames"] = len(cue_frames)
+        manifest.metadata["user_timestamp_frames"] = len(user_frames)
         manifest.metadata["cues"] = cues
+        if request.start is not None or request.end is not None:
+            manifest.metadata["focused_start"] = request.start
+            manifest.metadata["focused_end"] = request.end
+        if request.timestamps:
+            manifest.metadata["user_timestamps"] = list(request.timestamps)
 
         if _wants_ocr(manifest.detail, request.prompt) and all_frames:
             if ocr_available():

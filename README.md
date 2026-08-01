@@ -38,3 +38,38 @@ Hermes Video now has the v1 evidence engine needed by System B:
 - stable `manifest.json`, `video/metadata.json`, `video/transcript.md`, `analysis-ready.md`, and frame artifacts for Hermes/System B to inspect
 
 Still intentionally out of scope: platform interpretation, artifact verification, Discord delivery, and final prose. System B owns those.
+
+## Operator commands
+
+Run via the module (or the `hermes-video` entry point):
+
+```
+# Preflight: which tools/deps are present and how to install what is missing
+python -m hermes_video.cli doctor --json
+
+# Quick URL — captions/metadata only, no media download
+python -m hermes_video.cli watch "https://youtu.be/ID" --platform youtube --detail quick --workspace out/ --json
+
+# Balanced URL — downloads media when visual evidence is needed
+python -m hermes_video.cli watch "https://youtu.be/ID" --platform youtube --detail balanced --workspace out/ --json
+
+# Local file — direct media, no network
+python -m hermes_video.cli watch ./clip.mp4 --platform direct --media-path ./clip.mp4 --detail balanced --workspace out/ --json
+
+# Focused timestamp/range — dense frames in a window plus forced user timestamps
+python -m hermes_video.cli watch ./clip.mp4 --media-path ./clip.mp4 --detail focused --start 0:30 --end 0:45 --timestamps 32,0:38 --workspace out/ --json
+
+# Deep — denser frames + OCR + contact sheet for on-screen text / repo / site questions
+python -m hermes_video.cli watch ./clip.mp4 --media-path ./clip.mp4 --detail deep --prompt "what repo and command are shown" --workspace out/ --json
+
+# Canary runner — deterministic offline canaries + report; live URL is optional/gated
+python -m hermes_video.cli canary --report out/canary
+python -m hermes_video.cli canary --live-url "https://youtu.be/ID" --report out/canary
+
+# System B handoff — read the stable summary block from watch --json
+python -m hermes_video.cli watch <SOURCE> --media-path <LOCAL_MP4> --detail balanced --workspace out/ --json | jq .summary
+```
+
+Frame `reason` values recorded in the manifest: `scene`, `keyframe`, `uniform`
+(deterministic fallback), `focused_range`, `user_timestamp`, `transcript_cue`.
+See `docs/system-b-integration.md` for the full JSON/manifest contract.
