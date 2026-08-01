@@ -73,3 +73,9 @@ python -m hermes_video.cli watch <SOURCE> --media-path <LOCAL_MP4> --detail bala
 Frame `reason` values recorded in the manifest: `scene`, `keyframe`, `uniform`
 (deterministic fallback), `focused_range`, `user_timestamp`, `transcript_cue`.
 See `docs/system-b-integration.md` for the full JSON/manifest contract.
+
+## Hermes skill
+
+This repo packages a Hermes skill at `skills/media/hermes-video/SKILL.md` with a progressively disclosed System B reference at `skills/media/hermes-video/references/system-b-contract.md`.
+
+The skill is the operator surface for deciding when to run Hermes Video, which detail mode to choose, how to preserve evidence-status honesty, and how System B should ingest the stable `watch --json` summary/manifest fields.
